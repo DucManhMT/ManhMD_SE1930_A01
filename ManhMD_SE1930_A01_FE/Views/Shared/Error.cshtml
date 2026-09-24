@@ -1,0 +1,16 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Lỗi hệ thống";
+}
+
+<div class="card card-fu p-4">
+    <h1 class="text-danger fs-3">Đã xảy ra lỗi khi xử lý yêu cầu.</h1>
+    <p class="text-muted">Vui lòng thử lại hoặc liên hệ quản trị viên nếu sự cố vẫn tiếp diễn.</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p>
+            <strong>Mã yêu cầu (Request ID):</strong> <code>@Model.RequestId</code>
+        </p>
+    }
+</div>

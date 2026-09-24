@@ -1,22 +1,70 @@
-html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+:root {
+    --fu-primary: #1D4ED8;
+    --fu-primary-hover: #1E40AF;
+    --fu-text: #0F172A;
+    --fu-muted: #475569;
+    --fu-bg: #F8FAFC;
+    --fu-surface: #FFFFFF;
+    --fu-border: #CBD5E1;
+    --fu-success: #166534;
+    --fu-danger: #B91C1C;
+    --fu-radius: 8px;
 }
 
 body {
-  margin-bottom: 60px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--fu-text);
+    background-color: var(--fu-bg);
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.fu-container-public {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.navbar-fu {
+    background-color: var(--fu-surface);
+    border-bottom: 1px solid var(--fu-border);
+}
+
+.navbar-brand-fu {
+    font-weight: 700;
+    color: var(--fu-primary) !important;
+    font-size: 1.35rem;
+    letter-spacing: -0.5px;
+}
+
+.btn-fu-primary {
+    background-color: var(--fu-primary);
+    border-color: var(--fu-primary);
+    color: #FFFFFF;
+    border-radius: var(--fu-radius);
+}
+
+.btn-fu-primary:hover {
+    background-color: var(--fu-primary-hover);
+    border-color: var(--fu-primary-hover);
+    color: #FFFFFF;
+}
+
+.card-fu {
+    background-color: var(--fu-surface);
+    border: 1px solid var(--fu-border);
+    border-radius: var(--fu-radius);
+}
+
+footer.footer-fu {
+    margin-top: auto;
+    background-color: var(--fu-surface);
+    border-top: 1px solid var(--fu-border);
+    padding: 16px 0;
+    color: var(--fu-muted);
+    font-size: 14px;
 }

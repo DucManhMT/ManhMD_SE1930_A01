@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <ItemGroup>
+    <ProjectReference Include="FUNews.Client.BusinessLogic\FUNews.Client.BusinessLogic.csproj" />
+    <ProjectReference Include="FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DefaultItemExcludes>$(DefaultItemExcludes);FUNews.Client.DataAccess\**;FUNews.Client.BusinessLogic\**</DefaultItemExcludes>
   </PropertyGroup>
 
 </Project>
