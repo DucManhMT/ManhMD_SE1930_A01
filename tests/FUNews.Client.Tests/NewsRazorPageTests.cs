@@ -89,6 +89,36 @@ public class NewsRazorPageTests
             Articles.Add(created);
             return Task.FromResult(created);
         }
+
+        public Task<NewsArticleApiModel> UpdateNewsArticleAsync(string id, UpdateNewsArticleApiModel request, CancellationToken cancellationToken = default)
+        {
+            var article = Articles.FirstOrDefault(a => a.NewsArticleId == id);
+            if (article == null)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, $"Không tìm thấy bài viết mã '{id}'.");
+            }
+
+            article.NewsTitle = request.NewsTitle;
+            article.Headline = request.Headline;
+            article.NewsContent = request.NewsContent;
+            article.NewsSource = request.NewsSource;
+            article.CategoryId = request.CategoryId;
+            article.NewsStatus = request.NewsStatus ?? article.NewsStatus;
+            article.ModifiedDate = DateTime.Now;
+            return Task.FromResult(article);
+        }
+
+        public Task DeleteNewsArticleAsync(string id, CancellationToken cancellationToken = default)
+        {
+            var article = Articles.FirstOrDefault(a => a.NewsArticleId == id);
+            if (article == null)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, $"Không tìm thấy bài viết mã '{id}'.");
+            }
+
+            Articles.Remove(article);
+            return Task.CompletedTask;
+        }
     }
 
     private class FakeCategoryClientService : ICategoryClientService
@@ -360,4 +390,86 @@ public class NewsRazorPageTests
         Assert.NotNull(msgProp);
         Assert.Contains("Dữ liệu không hợp lệ", msgProp.GetValue(jsonResult.Value)?.ToString());
     }
+
+    [Fact]
+    public async Task OnGetDetailAsync_WhenArticleExists_ReturnsArticleDetails()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var result = await pageModel.OnGetDetailAsync("ART_01", CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        var articleProp = type.GetProperty("article");
+        Assert.NotNull(articleProp);
+        var article = articleProp.GetValue(jsonResult.Value) as NewsArticleApiModel;
+        Assert.NotNull(article);
+        Assert.Equal("ART_01", article.NewsArticleId);
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WithValidModel_UpdatesAndReturnsSuccess()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new UpdateNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01",
+            Headline = "Updated Headline Test",
+            NewsTitle = "Updated Title Test",
+            CategoryId = 1,
+            NewsStatus = true,
+            TagIds = new List<int> { 1, 2 }
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        var articleProp = type.GetProperty("article");
+        Assert.NotNull(articleProp);
+        var updated = articleProp.GetValue(jsonResult.Value) as NewsArticleApiModel;
+        Assert.NotNull(updated);
+        Assert.Equal("Updated Headline Test", updated.Headline);
+    }
+
+    [Fact]
+    public async Task OnPostDeleteAsync_WithValidId_DeletesAndReturnsSuccess()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new DeleteNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01"
+        };
+
+        var result = await pageModel.OnPostDeleteAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        // Confirm deleted from service
+        Assert.DoesNotContain(fakeNews.Articles, a => a.NewsArticleId == "ART_01");
+    }
 }
+

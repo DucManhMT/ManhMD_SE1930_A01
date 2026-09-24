@@ -52,6 +52,11 @@ public class NewsArticleRepository : INewsArticleRepository
         return _articleDao.UpdateAsync(article, cancellationToken);
     }
 
+    public Task<NewsArticle> UpdateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default)
+    {
+        return _articleDao.UpdateWithTagsAsync(article, tagIds, cancellationToken);
+    }
+
     public Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         return _articleDao.DeleteAsync(id, cancellationToken);

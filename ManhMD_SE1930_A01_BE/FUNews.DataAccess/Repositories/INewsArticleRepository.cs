@@ -12,5 +12,7 @@ public interface INewsArticleRepository
     Task<NewsArticle> AddAsync(NewsArticle article, CancellationToken cancellationToken = default);
     Task<NewsArticle> CreateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default);
     Task<NewsArticle> UpdateAsync(NewsArticle article, CancellationToken cancellationToken = default);
+    Task<NewsArticle> UpdateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
 }
+

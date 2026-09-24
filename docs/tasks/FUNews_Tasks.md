@@ -22,7 +22,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-010 | Quản lý tag | 004 | DONE |
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | DONE |
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | DONE |
-| FUN-013 | Sửa và xóa bài viết | 012 | TODO |
+| FUN-013 | Sửa và xóa bài viết | 012 | DONE |
 | FUN-014 | Nhân bản bài viết | 013 | TODO |
 | FUN-015 | Lịch sử bài do mình tạo | 013 | TODO |
 | FUN-016 | Trang tin công khai và chi tiết | 013 | TODO |
@@ -547,7 +547,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-013 — Sửa và xóa bài viết
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 012
 - Actor: Staff
 - Điểm vào/phạm vi file: Modal tại /staff/news; PUT/DELETE /api/news/{id}
@@ -564,10 +564,29 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Models & DTOs: [UpdateNewsArticleRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/UpdateNewsArticleRequestDto.cs).
+  - BE DAOs & Repositories: [NewsArticleDAO.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/DAOs/NewsArticleDAO.cs), [INewsArticleRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/INewsArticleRepository.cs), [NewsArticleRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/NewsArticleRepository.cs).
+  - BE Services & Controllers: [INewsArticleService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/INewsArticleService.cs), [NewsArticleService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs), [NewsController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/NewsController.cs).
+  - FE DataAccess: [UpdateNewsArticleApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/UpdateNewsArticleApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic: [INewsClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/INewsClientService.cs), [NewsClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/NewsClientService.cs).
+  - FE Presentation (Razor Page & UI): [News.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml), [News.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml.cs).
+  - Tests: [NewsArticleUpdateAndDeleteTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/NewsArticleUpdateAndDeleteTests.cs), [NewsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/NewsRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 92/92 Passed (100%) — gồm 5 tests acceptance criteria FUN-013.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 76/76 Passed (100%) — gồm 3 tests handler/client FUN-013.
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. CreatedBy/Date giữ nguyên: Khi Staff/Admin gọi `PUT /api/news/{id}`, giá trị `CreatedByID` và `CreatedDate` nguyên bản của bài viết được bảo toàn tuyệt đối, không bị ghi đè bởi người sửa hay thời gian sửa.
+    2. UpdatedBy/ModifiedDate đúng: Tầng Service tự động trích xuất `AccountId` từ JWT claim của người dùng đang đăng nhập gán vào `UpdatedByID`; `ModifiedDate` được gán chính xác theo thời gian thực của server.
+    3. Cho giữ category inactive cũ: Nếu bài viết đang liên kết với chuyên mục đã bị hủy kích hoạt (inactive), hệ thống cho phép cập nhật giữ nguyên chuyên mục đó. Nếu người dùng chọn đổi sang một chuyên mục inactive khác, hệ thống chặn với `400 Bad Request`.
+    4. Add/remove tags atomic: Việc thêm thẻ mới và gỡ thẻ cũ diễn ra trong transaction atomic; cập nhật đồng bộ các bản ghi `NewsTag` tương ứng.
+    5. Xóa NewsTag trước bài: Khi thực hiện `DELETE /api/news/{id}`, hệ thống xóa toàn bộ các quan hệ phụ thuộc trong bảng trung gian `NewsTag` trước khi xóa dòng trong `NewsArticle`, tuân thủ toàn vẹn khóa ngoại FK.
+    6. Tags dùng chung còn nguyên: Sau khi xóa bài viết, các bản ghi trong bảng `Tag` vẫn được bảo toàn nguyên vẹn, không bị xóa theo.
+  - UI/AJAX evidence: Màn hình `/staff/news` cung cấp nút "Sửa" và "Xóa" cho từng bài viết. Khi nhấn "Sửa", modal nạp chi tiết bài viết và checkbox tags qua AJAX, submit PUT cập nhật ngay dòng trên bảng mà không reload trang. Khi nhấn "Xóa", modal xác nhận hiển thị tên bài viết, submit DELETE gỡ bỏ dòng và hiện Toast thông báo màu đỏ/xanh tương ứng.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-014 — Nhân bản bài viết
 

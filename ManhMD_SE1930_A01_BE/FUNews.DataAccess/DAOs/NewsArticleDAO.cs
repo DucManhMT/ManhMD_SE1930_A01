@@ -117,6 +117,71 @@ public class NewsArticleDAO
         return article;
     }
 
+    /// <summary>
+    /// Cập nhật bài viết và thay thế toàn bộ liên kết tag bằng danh sách mới trong một transaction.
+    /// Chỉ xóa NewsTags của bài này, không ảnh hưởng đến NewsTags của bài khác (AC 6).
+    /// </summary>
+    public async Task<NewsArticle> UpdateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(article);
+
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        }
+
+        try
+        {
+            // 1. Cập nhật bài viết (giữ CreatedBy/Date vì chúng đã có trong entity được truyền vào)
+            _context.NewsArticles.Update(article);
+
+            // 2. Xóa toàn bộ NewsTags hiện tại của bài này (AC 4: atomic replace tags)
+            var existingTags = await _context.NewsTags
+                .Where(nt => nt.NewsArticleID == article.NewsArticleID)
+                .ToListAsync(cancellationToken);
+            if (existingTags.Count > 0)
+            {
+                _context.NewsTags.RemoveRange(existingTags);
+            }
+
+            // 3. Thêm tập NewsTags mới (AC 4)
+            var distinctTagIds = tagIds?.Distinct().ToList() ?? new List<int>();
+            foreach (var tagId in distinctTagIds)
+            {
+                await _context.NewsTags.AddAsync(new NewsTag
+                {
+                    NewsArticleID = article.NewsArticleID,
+                    TagID = tagId
+                }, cancellationToken);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return article;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         var article = await _context.NewsArticles.FindAsync(new object[] { id }, cancellationToken);
@@ -125,15 +190,46 @@ public class NewsArticleDAO
             return false;
         }
 
-        // Delete associated NewsTags first to enforce explicit deletion as specified in decisions
-        var tags = await _context.NewsTags.Where(nt => nt.NewsArticleID == id).ToListAsync(cancellationToken);
-        if (tags.Count > 0)
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
         {
-            _context.NewsTags.RemoveRange(tags);
+            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         }
 
-        _context.NewsArticles.Remove(article);
-        await _context.SaveChangesAsync(cancellationToken);
-        return true;
+        try
+        {
+            // AC 5: Xóa NewsTags của bài này trước; không ảnh hưởng bài khác (AC 6)
+            var tags = await _context.NewsTags.Where(nt => nt.NewsArticleID == id).ToListAsync(cancellationToken);
+            if (tags.Count > 0)
+            {
+                _context.NewsTags.RemoveRange(tags);
+            }
+
+            _context.NewsArticles.Remove(article);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return true;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
     }
 }
+

@@ -84,26 +84,39 @@ public class NewsController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Update(string id)
+    public async Task<ActionResult<NewsArticleDto>> Update(string id, [FromBody] UpdateNewsArticleRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (request == null)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng cập nhật bài viết thuộc phạm vi task FUN-013."
-        });
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Yêu cầu không hợp lệ",
+                Detail = "Dữ liệu cập nhật bài viết không được để trống."
+            });
+        }
+
+        var accountId = GetCurrentAccountId();
+        if (!accountId.HasValue)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Không xác định danh tính",
+                Detail = "Không tìm thấy thông tin tài khoản nhân viên hợp lệ từ phiên đăng nhập."
+            });
+        }
+
+        var updated = await _newsService.UpdateAsync(id, request, accountId.Value, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Delete(string id)
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
-        {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng xóa bài viết thuộc phạm vi task FUN-013."
-        });
+        await _newsService.DeleteAsync(id, cancellationToken);
+        return NoContent();
     }
 
     [HttpPost("{id}/duplicate")]
@@ -125,3 +138,4 @@ public class NewsController : ControllerBase
         return short.TryParse(claimVal, out var id) ? id : null;
     }
 }
+

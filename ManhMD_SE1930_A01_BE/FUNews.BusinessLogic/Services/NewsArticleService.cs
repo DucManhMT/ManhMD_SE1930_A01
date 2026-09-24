@@ -120,4 +120,100 @@ public class NewsArticleService : INewsArticleService
         var created = await GetByIdAsync(nextId, activeOnly: null, cancellationToken);
         return created ?? throw new InvalidOperationException($"Không thể tải lại dữ liệu bài viết vừa tạo '{nextId}'.");
     }
+
+    public async Task<NewsArticleDto> UpdateAsync(string id, UpdateNewsArticleRequestDto request, short updatedById, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ValidationException("id", "Mã bài viết không hợp lệ.");
+        }
+
+        // 1. Kiểm tra bài viết tồn tại
+        var existing = await _articleRepository.GetByIdAsync(id, cancellationToken);
+        if (existing == null)
+        {
+            throw new NotFoundException($"Không tìm thấy bài viết với mã '{id}'.");
+        }
+
+        // 2. Validation lengths & required fields
+        var headline = NewsArticleValidationHelper.ValidateHeadline(request.Headline);
+        var title = NewsArticleValidationHelper.ValidateTitle(request.NewsTitle);
+        var content = NewsArticleValidationHelper.ValidateContent(request.NewsContent);
+        var source = NewsArticleValidationHelper.ValidateSource(request.NewsSource);
+
+        // 3. Validate Category:
+        //    D08: Được giữ category inactive cũ (AC 3) — chỉ từ chối nếu category mới không tồn tại.
+        //    Nếu đổi sang category mới, category mới phải active.
+        //    Nếu giữ nguyên category cũ dù đang inactive, cho phép.
+        if (request.CategoryId <= 0)
+        {
+            throw new ValidationException(nameof(request.CategoryId), "Vui lòng chọn chuyên mục cho bài viết.");
+        }
+
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
+        if (category == null)
+        {
+            throw new ValidationException(nameof(request.CategoryId), "Chuyên mục được chọn không tồn tại.");
+        }
+
+        // Nếu đổi sang category khác, category đó phải active (D08)
+        if (request.CategoryId != existing.CategoryID && category.IsActive != true)
+        {
+            throw new ValidationException(nameof(request.CategoryId), "Không thể chuyển bài viết sang chuyên mục đã bị tạm ẩn.");
+        }
+
+        // 4. Validate Tags exist & distinct
+        var distinctTagIds = NewsArticleValidationHelper.ValidateAndDeduplicateTags(request.TagIds);
+        if (distinctTagIds.Count > 0)
+        {
+            var existingTags = await _tagRepository.GetByIdsAsync(distinctTagIds, cancellationToken);
+            if (existingTags.Count != distinctTagIds.Count)
+            {
+                var existingSet = existingTags.Select(t => t.TagID).ToHashSet();
+                var missingIds = distinctTagIds.Where(tid => !existingSet.Contains(tid)).ToList();
+                throw new ValidationException("TagIds", $"Thẻ tin với mã {string.Join(", ", missingIds)} không tồn tại trong hệ thống.");
+            }
+        }
+
+        // 5. Cập nhật các trường cho phép, giữ nguyên CreatedByID và CreatedDate (AC 1)
+        existing.NewsTitle = title;
+        existing.Headline = headline;
+        existing.NewsContent = content;
+        existing.NewsSource = source;
+        existing.CategoryID = request.CategoryId;
+        existing.NewsStatus = request.NewsStatus ?? existing.NewsStatus;
+        // AC 2: Server gán UpdatedByID và ModifiedDate
+        existing.UpdatedByID = updatedById;
+        existing.ModifiedDate = DateTime.Now;
+        // CreatedByID và CreatedDate giữ nguyên như trong entity đã đọc từ DB
+
+        // 6. Lưu bài viết và thay thế toàn bộ tags (AC 4: atomic)
+        await _articleRepository.UpdateWithTagsAsync(existing, distinctTagIds, cancellationToken);
+
+        // 7. Đọc lại và trả về DTO đầy đủ
+        var updated = await GetByIdAsync(id, activeOnly: null, cancellationToken);
+        return updated ?? throw new InvalidOperationException($"Không thể tải lại dữ liệu bài viết vừa cập nhật '{id}'.");
+    }
+
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ValidationException("id", "Mã bài viết không hợp lệ.");
+        }
+
+        // Kiểm tra bài tồn tại trước khi xóa (trả về lỗi rõ ràng hơn false)
+        var exists = await _articleRepository.ExistsAsync(id, cancellationToken);
+        if (!exists)
+        {
+            throw new NotFoundException($"Không tìm thấy bài viết với mã '{id}'.");
+        }
+
+        // AC 5: Repository sẽ xóa NewsTags trước rồi mới xóa bài (trong transaction)
+        // AC 6: Chỉ xóa NewsTags của bài này, bài khác cùng tag không bị ảnh hưởng
+        return await _articleRepository.DeleteAsync(id, cancellationToken);
+    }
 }
+

@@ -82,7 +82,7 @@ public class NewsModel : PageModel
             Categories = new List<CategoryApiModel>();
         }
 
-        // 2. Tải thẻ tin phục vụ modal tạo bài viết (FUN-012)
+        // 2. Tải thẻ tin phục vụ modal tạo và sửa bài viết
         try
         {
             var tagEnvelope = await _tagClientService.GetTagsAsync("$orderby=tagName asc&$top=100", cancellationToken);
@@ -90,7 +90,7 @@ public class NewsModel : PageModel
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load tags for news create modal.");
+            _logger.LogWarning(ex, "Failed to load tags for news create/edit modal.");
             Tags = new List<TagApiModel>();
         }
 
@@ -233,6 +233,108 @@ public class NewsModel : PageModel
             });
         }
     }
+
+    public async Task<IActionResult> OnPostUpdateAsync([FromBody] UpdateNewsArticleInputModel input, CancellationToken cancellationToken)
+    {
+        if (input == null || string.IsNullOrWhiteSpace(input.NewsArticleId))
+        {
+            return new JsonResult(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Vui lòng kiểm tra lại thông tin nhập liệu.",
+                errors = ValidationResponseHelper.ExtractModelStateErrors(ModelState)
+            });
+        }
+
+        try
+        {
+            var request = new UpdateNewsArticleApiModel
+            {
+                NewsTitle = string.IsNullOrWhiteSpace(input.NewsTitle) ? null : input.NewsTitle.Trim(),
+                Headline = input.Headline.Trim(),
+                NewsContent = string.IsNullOrWhiteSpace(input.NewsContent) ? null : input.NewsContent.Trim(),
+                NewsSource = string.IsNullOrWhiteSpace(input.NewsSource) ? null : input.NewsSource.Trim(),
+                CategoryId = input.CategoryId,
+                NewsStatus = input.NewsStatus,
+                TagIds = input.TagIds ?? new List<int>()
+            };
+
+            var updatedArticle = await _newsClientService.UpdateNewsArticleAsync(input.NewsArticleId, request, cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Cập nhật bài viết \"{(string.IsNullOrWhiteSpace(updatedArticle.NewsTitle) ? updatedArticle.Headline : updatedArticle.NewsTitle)}\" thành công.",
+                article = updatedArticle
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while updating news article {Id}: {Message}", input.NewsArticleId, ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể cập nhật bài viết do lỗi dữ liệu từ hệ thống.",
+                errors = ValidationResponseHelper.NormalizeApiErrors(ex.ValidationErrors)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while updating news article {Id}.", input.NewsArticleId);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi không mong muốn trên hệ thống. Vui lòng thử lại sau."
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync([FromBody] DeleteNewsArticleInputModel input, CancellationToken cancellationToken)
+    {
+        if (input == null || string.IsNullOrWhiteSpace(input.NewsArticleId))
+        {
+            return new JsonResult(new { success = false, message = "Mã bài viết không hợp lệ." });
+        }
+
+        try
+        {
+            await _newsClientService.DeleteNewsArticleAsync(input.NewsArticleId, cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Đã xóa bài viết mã '{input.NewsArticleId}' thành công.",
+                deletedId = input.NewsArticleId
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while deleting news article {Id}: {Message}", input.NewsArticleId, ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể xóa bài viết. Vui lòng thử lại."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while deleting news article {Id}.", input.NewsArticleId);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi không mong muốn trên hệ thống. Vui lòng thử lại sau."
+            });
+        }
+    }
 }
 
 public class CreateNewsArticleInputModel
@@ -258,3 +360,37 @@ public class CreateNewsArticleInputModel
 
     public List<int> TagIds { get; set; } = new();
 }
+
+public class UpdateNewsArticleInputModel
+{
+    [Required(ErrorMessage = "Mã bài viết là bắt buộc.")]
+    public string NewsArticleId { get; set; } = string.Empty;
+
+    [StringLength(400, ErrorMessage = "Tiêu đề bài viết không được vượt quá 400 ký tự.")]
+    public string? NewsTitle { get; set; }
+
+    [Required(ErrorMessage = "Tiêu đề tóm tắt (Headline) là bắt buộc.")]
+    [StringLength(150, ErrorMessage = "Tiêu đề tóm tắt không được vượt quá 150 ký tự.")]
+    public string Headline { get; set; } = string.Empty;
+
+    [StringLength(4000, ErrorMessage = "Nội dung bài viết không được vượt quá 4000 ký tự.")]
+    public string? NewsContent { get; set; }
+
+    [StringLength(400, ErrorMessage = "Nguồn tin không được vượt quá 400 ký tự.")]
+    public string? NewsSource { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng chọn chuyên mục cho bài viết.")]
+    [Range(1, short.MaxValue, ErrorMessage = "Vui lòng chọn một chuyên mục hợp lệ.")]
+    public short CategoryId { get; set; }
+
+    public bool NewsStatus { get; set; } = true;
+
+    public List<int> TagIds { get; set; } = new();
+}
+
+public class DeleteNewsArticleInputModel
+{
+    [Required(ErrorMessage = "Mã bài viết là bắt buộc.")]
+    public string NewsArticleId { get; set; } = string.Empty;
+}
+
