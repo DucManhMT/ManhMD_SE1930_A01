@@ -1,0 +1,6 @@
+@ManhMD_SE1930_A01_BE_HostAddress = http://localhost:5283
+
+GET {{ManhMD_SE1930_A01_BE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
