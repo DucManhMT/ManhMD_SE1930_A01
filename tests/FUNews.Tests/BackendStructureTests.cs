@@ -11,7 +11,8 @@ public class BackendStructureTests
         var backendAssemblies = new[]
         {
             typeof(FUNews.BusinessLogic.BusinessLogicMarker).Assembly,
-            typeof(FUNews.DataAccess.DataAccessMarker).Assembly
+            typeof(FUNews.DataAccess.DataAccessMarker).Assembly,
+            typeof(ManhMD_SE1930_A01_BE.Controllers.HealthController).Assembly
         };
 
         foreach (var assembly in backendAssemblies)
@@ -29,5 +30,14 @@ public class BackendStructureTests
         var referencedAssemblies = blAssembly.GetReferencedAssemblies();
 
         Assert.Contains(referencedAssemblies, r => string.Equals(r.Name, "FUNews.DataAccess", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Backend_ShouldNotContain_WeatherForecastTemplate()
+    {
+        var apiAssembly = typeof(ManhMD_SE1930_A01_BE.Controllers.HealthController).Assembly;
+        var types = apiAssembly.GetTypes();
+
+        Assert.DoesNotContain(types, t => t.Name.Contains("WeatherForecast", StringComparison.OrdinalIgnoreCase));
     }
 }
