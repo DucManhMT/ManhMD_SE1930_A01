@@ -15,7 +15,7 @@ public class SystemAccountDAO
 
     public IQueryable<SystemAccount> GetQueryable()
     {
-        return _context.SystemAccounts.AsQueryable();
+        return _context.SystemAccounts.OrderBy(a => a.AccountID).AsQueryable();
     }
 
     public async Task<SystemAccount?> GetByIdAsync(short id, CancellationToken cancellationToken = default)

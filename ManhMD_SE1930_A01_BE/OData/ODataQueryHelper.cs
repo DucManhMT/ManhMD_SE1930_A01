@@ -33,6 +33,7 @@ public static class ODataQueryHelper
 
         var querySettings = new ODataQuerySettings
         {
+            EnsureStableOrdering = true,
             PageSize = queryOptions.Top != null ? null : defaultPageSize
         };
 

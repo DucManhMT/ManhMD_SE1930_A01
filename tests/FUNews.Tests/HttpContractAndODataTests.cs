@@ -119,6 +119,19 @@ public class HttpContractAndODataTests : IClassFixture<WebApplicationFactory<Pro
     }
 
     [Fact]
+    public async Task Regression_OData_PaginationWithSkip_WithoutOrderby_ShouldWorkDeterministically()
+    {
+        // Calling $skip without $orderby must succeed and use stable ordering
+        var response = await _client.GetAsync("api/category?$skip=1&$top=2&$count=true");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<ODataResponse<CategoryDto>>();
+        Assert.NotNull(result);
+        Assert.NotNull(result.Count);
+        Assert.Equal(2, result.Value.Count);
+    }
+
+    [Fact]
     public async Task Criterion_03_QueryInvalid_Expand_ShouldBeBlocked()
     {
         // Contract states: chặn $expand

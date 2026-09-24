@@ -15,7 +15,7 @@ public class CategoryDAO
 
     public IQueryable<Category> GetQueryable()
     {
-        return _context.Categories.AsQueryable();
+        return _context.Categories.OrderBy(c => c.CategoryID).AsQueryable();
     }
 
     public async Task<Category?> GetByIdAsync(short id, CancellationToken cancellationToken = default)

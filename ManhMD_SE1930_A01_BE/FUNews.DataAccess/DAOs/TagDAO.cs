@@ -15,7 +15,7 @@ public class TagDAO
 
     public IQueryable<Tag> GetQueryable()
     {
-        return _context.Tags.AsQueryable();
+        return _context.Tags.OrderBy(t => t.TagID).AsQueryable();
     }
 
     public async Task<Tag?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
