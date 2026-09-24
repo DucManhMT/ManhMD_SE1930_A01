@@ -1,0 +1,59 @@
+@page
+@model ManhMD_SE1930_A01_FE.Pages.LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="row justify-content-center mt-4 mb-5">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+        <div class="card card-fu shadow-sm p-4">
+            <div class="text-center mb-4">
+                <h1 class="h3 fw-bold text-primary mb-1">FUNews</h1>
+                <p class="text-muted small">Hệ thống Quản lý Tin tức FPT University</p>
+                <div class="border-top pt-2">
+                    <h2 class="h5 fw-semibold text-dark">Đăng nhập tài khoản</h2>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" aria-live="assertive">
+                    <div>
+                        <span class="fw-medium">Lỗi: </span>@Model.ErrorMessage
+                    </div>
+                </div>
+            }
+
+            <form method="post" asp-route-returnUrl="@Model.ReturnUrl" novalidate id="fuLoginForm">
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-semibold">Địa chỉ Email <span class="text-danger">*</span></label>
+                    <input asp-for="Email" class="form-control" placeholder="name@FUNewsManagement.org" autofocus autocomplete="username" />
+                    <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Password" class="form-label fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
+                    <input asp-for="Password" class="form-control" placeholder="Nhập mật khẩu của bạn" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-fu-primary py-2 fw-semibold" id="fuLoginSubmitBtn">
+                        Đăng nhập
+                    </button>
+                    <a asp-page="/Index" class="btn btn-outline-secondary py-2">
+                        Quay lại trang chủ
+                    </a>
+                </div>
+            </form>
+
+            <div class="mt-4 pt-3 border-top text-center text-muted small">
+                <span>Hệ thống hỗ trợ tài khoản Quản trị viên, Nhân viên và Giảng viên.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

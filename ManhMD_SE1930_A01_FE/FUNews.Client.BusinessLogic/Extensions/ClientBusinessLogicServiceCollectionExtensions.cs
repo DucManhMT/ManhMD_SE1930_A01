@@ -7,6 +7,7 @@ public static class ClientBusinessLogicServiceCollectionExtensions
 {
     public static IServiceCollection AddFUNewsClientBusinessLogic(this IServiceCollection services)
     {
+        services.AddScoped<IAuthClientService, AuthClientService>();
         services.AddScoped<ICategoryClientService, CategoryClientService>();
         services.AddScoped<INewsClientService, NewsClientService>();
         services.AddScoped<ITagClientService, TagClientService>();

@@ -11,20 +11,103 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-fu">
             <div class="container fu-container-public">
-                <a class="navbar-brand navbar-brand-fu" asp-page="/Index">FUNews</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="navbar-brand navbar-brand-fu d-flex align-items-center" asp-page="/Index">
+                        <span class="badge bg-danger me-2">Admin</span>
+                        <span>FUNews</span>
+                    </a>
+                }
+                else if (User.IsInRole("Staff"))
+                {
+                    <a class="navbar-brand navbar-brand-fu d-flex align-items-center" asp-page="/Index">
+                        <span class="badge bg-primary me-2">Staff</span>
+                        <span>FUNews</span>
+                    </a>
+                }
+                else
+                {
+                    <a class="navbar-brand navbar-brand-fu" asp-page="/Index">FUNews</a>
+                }
+
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain"
                         aria-expanded="false" aria-label="Chuyển đổi điều hướng">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="collapse navbar-collapse" id="navbarMain">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-page="/Index">Tin tức</a>
-                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/admin/accounts">Quản lý tài khoản</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/admin/reports">Báo cáo thống kê</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-muted" asp-page="/Index">Trang tin tức</a>
+                            </li>
+                        }
+                        else if (User.IsInRole("Staff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index">Tin tức</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/staff/news">Quản lý bài viết</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/staff/categories">Chuyên mục</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/staff/tags">Thẻ tin</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/staff/my-news">Tin của tôi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/staff/profile">Hồ sơ cá nhân</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index">Tin tức</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" href="/search">Tìm kiếm</a>
+                            </li>
+                        }
                     </ul>
-                    <div class="d-flex align-items-center">
-                        <a class="btn btn-outline-primary btn-sm me-2" href="/search">Tìm kiếm</a>
-                        <a class="btn btn-fu-primary btn-sm" href="/login">Đăng nhập</a>
+
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="d-flex align-items-center me-2 text-dark small">
+                                <span>Xin chào, <strong class="ms-1">@User.Identity.Name</strong></span>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <span class="badge bg-danger ms-2">Quản trị viên</span>
+                                }
+                                else if (User.IsInRole("Staff"))
+                                {
+                                    <span class="badge bg-primary ms-2">Nhân viên</span>
+                                }
+                                else if (User.IsInRole("Lecturer"))
+                                {
+                                    <span class="badge bg-secondary ms-2">Giảng viên</span>
+                                }
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="fuLogoutBtn" data-bs-toggle="modal" data-bs-target="#fuLogoutConfirmModal">
+                                Đăng xuất
+                            </button>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary btn-sm" href="/search">Tìm kiếm</a>
+                            <button type="button" class="btn btn-fu-primary btn-sm" data-bs-toggle="modal" data-bs-target="#fuLoginModal" id="fuNavLoginBtn">Đăng nhập</button>
+                        }
                     </div>
                 </div>
             </div>
@@ -36,6 +119,70 @@
             @RenderBody()
         </main>
     </div>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Modal xác nhận đăng xuất -->
+        <div class="modal fade" id="fuLogoutConfirmModal" tabindex="-1" aria-labelledby="fuLogoutModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content card-fu">
+                    <div class="modal-header border-bottom">
+                        <h2 class="modal-title fs-5 fw-bold text-dark" id="fuLogoutModalLabel">Xác nhận đăng xuất</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body py-4">
+                        <p class="mb-0 text-muted">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống <strong>FUNews</strong>?</p>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <form method="post" asp-page="/Logout" class="d-inline m-0 p-0" id="fuLogoutForm">
+                            <button type="submit" class="btn btn-danger btn-sm" id="fuLogoutConfirmSubmitBtn">Đăng xuất</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Modal Đăng nhập AJAX -->
+        <div class="modal fade" id="fuLoginModal" tabindex="-1" aria-labelledby="fuLoginModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content card-fu">
+                    <div class="modal-header border-bottom">
+                        <h2 class="modal-title fs-5 fw-bold text-primary" id="fuLoginModalLabel">Đăng nhập tài khoản</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <form id="fuLoginModalForm" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="modal-body p-4">
+                            <div id="fuLoginModalAlert" class="alert alert-danger d-none py-2 px-3 small mb-3" role="alert" aria-live="assertive"></div>
+                            
+                            <div class="mb-3">
+                                <label for="fuLoginModalEmail" class="form-label fw-semibold small">Địa chỉ Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="fuLoginModalEmail" placeholder="name@FUNewsManagement.org" required autocomplete="username" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="fuLoginModalPassword" class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="fuLoginModalPassword" placeholder="Nhập mật khẩu của bạn" required autocomplete="current-password" />
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center text-muted small mt-2">
+                                <span>Hỗ trợ Admin, Staff và Lecturer</span>
+                                <a asp-page="/Login" class="text-primary text-decoration-none">Mở trang đầy đủ</a>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-fu-primary btn-sm px-3" id="fuLoginModalSubmitBtn">
+                                <span class="spinner-border spinner-border-sm me-1 d-none" id="fuLoginModalSpinner" role="status" aria-hidden="true"></span>
+                                <span id="fuLoginModalBtnText">Đăng nhập</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Toast container cho thông báo toàn hệ thống có aria-live -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="fuToastContainer" aria-live="polite" aria-atomic="true"></div>

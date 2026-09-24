@@ -1,0 +1,18 @@
+@page
+@model ManhMD_SE1930_A01_FE.Pages.LogoutModel
+@{
+    ViewData["Title"] = "Đăng xuất";
+}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-6 text-center">
+        <div class="card card-fu shadow-sm p-4">
+            <h2 class="h4 fw-bold mb-3">Xác nhận đăng xuất</h2>
+            <p class="text-muted mb-4">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống FUNews?</p>
+            <form method="post">
+                <button type="submit" class="btn btn-danger px-4 me-2" id="fuLogoutConfirmBtn">Đăng xuất</button>
+                <a asp-page="/Index" class="btn btn-outline-secondary px-4">Hủy bỏ</a>
+            </form>
+        </div>
+    </div>
+</div>

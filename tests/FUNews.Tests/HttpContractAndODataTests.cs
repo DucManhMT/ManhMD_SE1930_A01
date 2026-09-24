@@ -1,14 +1,17 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Security;
 using FUNews.Client.DataAccess.Clients;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.DataAccess.Context;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace FUNews.Tests;
@@ -22,6 +25,20 @@ public class HttpContractAndODataTests : IClassFixture<WebApplicationFactory<Pro
     {
         _factory = factory;
         _client = factory.CreateClient();
+
+        // Cung cấp token Quản trị viên (Admin) cho client kiểm thử để truy cập các endpoint quản trị như api/account
+        using var scope = factory.Services.CreateScope();
+        var jwtTokenService = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
+        var adminUser = new UserInfoDto
+        {
+            AccountId = null,
+            AccountName = "Quản trị viên",
+            AccountEmail = "admin@FUNewsManagementSystem.org",
+            AccountRole = null,
+            RoleName = "Admin"
+        };
+        var token = jwtTokenService.GenerateToken(adminUser, out _);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
     [Fact]

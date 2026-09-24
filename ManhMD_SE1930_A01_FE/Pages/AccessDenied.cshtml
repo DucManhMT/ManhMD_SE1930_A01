@@ -1,0 +1,27 @@
+@page
+@model ManhMD_SE1930_A01_FE.Pages.AccessDeniedModel
+@{
+    ViewData["Title"] = "Không có quyền truy cập";
+}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-6 text-center">
+        <div class="card card-fu shadow-sm p-5 border-danger">
+            <div class="text-danger mb-3">
+                <span class="badge bg-danger fs-5 px-3 py-2">403 - Forbidden</span>
+            </div>
+            <h1 class="h3 fw-bold text-dark mb-3">Truy cập bị từ chối</h1>
+            <p class="text-muted mb-4">
+                Bạn không có quyền hạn để truy cập tài nguyên hoặc thực hiện hành động này.
+            </p>
+            <div>
+                <a asp-page="/Index" class="btn btn-fu-primary px-4 py-2 me-2">
+                    Về trang chủ
+                </a>
+                <a asp-page="/Login" class="btn btn-outline-secondary px-4 py-2">
+                    Đăng nhập tài khoản khác
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,23 @@
+@page "/admin/reports"
+@model ManhMD_SE1930_A01_FE.Pages.Admin.ReportsModel
+@{
+    ViewData["Title"] = "Báo cáo thống kê";
+}
+
+<div class="container fu-container-public">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Báo cáo thống kê tin tức</h1>
+            <p class="text-muted small mb-0">Thống kê số lượng bài viết theo khoảng ngày và chuyên mục</p>
+        </div>
+        <span class="badge bg-danger fs-6 px-3 py-2">Admin Only</span>
+    </div>
+
+    <div class="card card-fu shadow-sm p-4 text-center my-4">
+        <div class="py-4">
+            <h2 class="h5 fw-bold text-primary mb-2">Chức năng Báo cáo thống kê</h2>
+            <p class="text-muted mb-3">Màn hình báo cáo, nhóm theo tác giả/chuyên mục và thống kê trạng thái đang được phát triển trong task <strong>[FUN-019]</strong>.</p>
+            <a asp-page="/Index" class="btn btn-outline-primary btn-sm">Quay về trang tin tức</a>
+        </div>
+    </div>
+</div>

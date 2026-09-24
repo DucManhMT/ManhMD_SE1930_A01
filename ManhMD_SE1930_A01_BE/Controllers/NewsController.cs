@@ -1,6 +1,7 @@
 using FUNews.BusinessLogic.DTOs;
 using FUNews.BusinessLogic.Services;
 using ManhMD_SE1930_A01_BE.OData;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 
@@ -18,6 +19,7 @@ public class NewsController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public ActionResult<ODataResponse<NewsArticleDto>> Get(ODataQueryOptions<NewsArticleDto> queryOptions, [FromQuery] bool? activeOnly)
     {
         // Enforce role-based visibility: Public/Lecturer can only ever see Active articles
@@ -30,6 +32,7 @@ public class NewsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<NewsArticleDto>> GetById(string id, CancellationToken cancellationToken)
     {
         var isPrivileged = User.Identity?.IsAuthenticated == true && (User.IsInRole("Staff") || User.IsInRole("Admin"));
@@ -47,5 +50,53 @@ public class NewsController : ControllerBase
         }
 
         return Ok(article);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Staff")]
+    public IActionResult Create()
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        {
+            Status = StatusCodes.Status501NotImplemented,
+            Title = "Chưa triển khai",
+            Detail = "Chức năng tạo bài viết thuộc phạm vi task FUN-012."
+        });
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Staff")]
+    public IActionResult Update(string id)
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        {
+            Status = StatusCodes.Status501NotImplemented,
+            Title = "Chưa triển khai",
+            Detail = "Chức năng cập nhật bài viết thuộc phạm vi task FUN-013."
+        });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Staff")]
+    public IActionResult Delete(string id)
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        {
+            Status = StatusCodes.Status501NotImplemented,
+            Title = "Chưa triển khai",
+            Detail = "Chức năng xóa bài viết thuộc phạm vi task FUN-013."
+        });
+    }
+
+    [HttpPost("{id}/duplicate")]
+    [Authorize(Roles = "Staff")]
+    public IActionResult Duplicate(string id)
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        {
+            Status = StatusCodes.Status501NotImplemented,
+            Title = "Chưa triển khai",
+            Detail = "Chức năng nhân bản bài viết thuộc phạm vi task FUN-014."
+        });
     }
 }

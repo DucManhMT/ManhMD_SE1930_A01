@@ -16,18 +16,57 @@ public class SqlSequenceService : ISqlSequenceService
 
     public async Task<short> GetNextAccountIdAsync(CancellationToken cancellationToken = default)
     {
-        return await ExecuteSequenceScalarAsync<short>("dbo.Seq_AccountID", cancellationToken);
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                return await ExecuteSequenceScalarAsync<short>("dbo.Seq_AccountID", cancellationToken);
+            }
+            catch
+            {
+                // Fallback to Max + 1 if sequence is not present or execution fails
+            }
+        }
+
+        var max = await _context.SystemAccounts.MaxAsync(a => (short?)a.AccountID, cancellationToken) ?? 0;
+        return (short)(max + 1);
     }
 
     public async Task<int> GetNextTagIdAsync(CancellationToken cancellationToken = default)
     {
-        return await ExecuteSequenceScalarAsync<int>("dbo.Seq_TagID", cancellationToken);
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                return await ExecuteSequenceScalarAsync<int>("dbo.Seq_TagID", cancellationToken);
+            }
+            catch
+            {
+                // Fallback
+            }
+        }
+
+        var max = await _context.Tags.MaxAsync(t => (int?)t.TagID, cancellationToken) ?? 0;
+        return max + 1;
     }
 
     public async Task<string> GetNextNewsArticleIdAsync(CancellationToken cancellationToken = default)
     {
-        var seqNumber = await ExecuteSequenceScalarAsync<long>("dbo.Seq_NewsArticleID", cancellationToken);
-        return $"N{seqNumber}";
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                var seqNumber = await ExecuteSequenceScalarAsync<long>("dbo.Seq_NewsArticleID", cancellationToken);
+                return $"N{seqNumber}";
+            }
+            catch
+            {
+                // Fallback
+            }
+        }
+
+        var max = await _context.NewsArticles.CountAsync(cancellationToken);
+        return $"N{max + 1}";
     }
 
     private async Task<T> ExecuteSequenceScalarAsync<T>(string sequenceName, CancellationToken cancellationToken)

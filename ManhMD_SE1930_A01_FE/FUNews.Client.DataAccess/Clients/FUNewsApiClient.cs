@@ -62,6 +62,34 @@ public class FUNewsApiClient : IFUNewsApiClient
         return GetSingleAsync<AccountApiModel>($"api/account/{id}", cancellationToken);
     }
 
+    public async Task<AccountApiModel> CreateAccountAsync(CreateAccountApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/account", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<AccountApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
+    public async Task<LoginResponseApiModel> LoginAsync(LoginRequestApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/auth/login", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<LoginResponseApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
     private static string FormatQuery(string query)
     {
         var trimmed = query.Trim();

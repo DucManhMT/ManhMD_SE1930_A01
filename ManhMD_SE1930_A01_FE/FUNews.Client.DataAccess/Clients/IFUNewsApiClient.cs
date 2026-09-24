@@ -15,4 +15,7 @@ public interface IFUNewsApiClient
 
     Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<AccountApiModel?> GetAccountByIdAsync(short id, CancellationToken cancellationToken = default);
+    Task<AccountApiModel> CreateAccountAsync(CreateAccountApiModel request, CancellationToken cancellationToken = default);
+
+    Task<LoginResponseApiModel> LoginAsync(LoginRequestApiModel request, CancellationToken cancellationToken = default);
 }

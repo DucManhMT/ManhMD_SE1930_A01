@@ -11,11 +11,14 @@ public static class ClientDataAccessServiceCollectionExtensions
 
         var baseAddress = new Uri(apiBaseUrl.EndsWith('/') ? apiBaseUrl : $"{apiBaseUrl}/");
 
+        services.AddTransient<AuthHeaderHandler>();
+
         services.AddHttpClient<IFUNewsApiClient, FUNewsApiClient>(client =>
         {
             client.BaseAddress = baseAddress;
             client.DefaultRequestHeaders.Add("Accept", "application/json");
-        });
+        })
+        .AddHttpMessageHandler<AuthHeaderHandler>();
 
         return services;
     }

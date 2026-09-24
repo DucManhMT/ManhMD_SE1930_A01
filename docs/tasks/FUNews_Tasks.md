@@ -13,8 +13,8 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-001 | Khởi tạo hai solution | Không | DONE |
 | FUN-002 | Database và tầng truy cập | 001 | DONE |
 | FUN-003 | HTTP contract và OData nền tảng | 002 | DONE |
-| FUN-004 | Đăng nhập và shell theo role | 003 | TODO |
-| FUN-005 | Danh sách và thêm tài khoản | 004 | TODO |
+| FUN-004 | Đăng nhập và shell theo role | 003 | DONE |
+| FUN-005 | Danh sách và thêm tài khoản | 004 | DONE |
 | FUN-006 | Sửa và xóa tài khoản | 005 | TODO |
 | FUN-007 | Hồ sơ và đổi mật khẩu | 004 | TODO |
 | FUN-008 | Danh sách và thêm danh mục | 004 | TODO |
@@ -171,7 +171,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-004 — Đăng nhập và shell theo role
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 003
 - Actor: Admin/Staff/Lecturer
 - Điểm vào/phạm vi file: /login; /api/auth/login
@@ -189,14 +189,34 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - BusinessLogic: `DTOs/LoginRequestDto.cs` (namespace `Models`), `DTOs/UserInfoDto.cs`, `DTOs/LoginResponseDto.cs`, `Security/IJwtTokenService.cs` & `Security/JwtTokenService.cs`, `Services/IAuthService.cs` & `Services/AuthService.cs`, `Extensions/BusinessLogicServiceCollectionExtensions.cs`, `FUNews.BusinessLogic.csproj` (System.IdentityModel.Tokens.Jwt).
+    - API: `Controllers/AuthController.cs`, `Controllers/AccountController.cs` (`[Authorize(Roles = "Admin")]`), `Controllers/CategoryController.cs`, `Controllers/TagController.cs`, `Controllers/NewsController.cs` (phân quyền ghi `[Authorize(Roles = "Staff")]`), `Middleware/ExceptionHandlingMiddleware.cs` (UnsafeRelaxedJsonEscaping), `Program.cs` (JWT Bearer auth, authorization policies, Swagger security definition).
+  - Frontend:
+    - DataAccess: `Models/LoginRequestApiModel.cs`, `Models/UserInfoApiModel.cs`, `Models/LoginResponseApiModel.cs`, `Clients/ITokenProvider.cs`, `Clients/AuthHeaderHandler.cs`, `Clients/IFUNewsApiClient.cs` & `Clients/FUNewsApiClient.cs` (phương thức `LoginAsync`), `Extensions/ClientDataAccessServiceCollectionExtensions.cs`.
+    - BusinessLogic: `Services/IAuthClientService.cs` & `Services/AuthClientService.cs`, `Extensions/ClientBusinessLogicServiceCollectionExtensions.cs`.
+    - Presentation: `Program.cs` (Cookie Auth, Session, Antiforgery, Policies), `Services/HttpContextTokenProvider.cs`, `Pages/Login.cshtml` & `Pages/Login.cshtml.cs`, `Pages/Logout.cshtml` & `Pages/Logout.cshtml.cs`, `Pages/AccessDenied.cshtml` & `Pages/AccessDenied.cshtml.cs`, `Pages/Shared/_Layout.cshtml` (Role-based navigation shell cho Anonymous, Lecturer, Staff, Admin), `Pages/Shared/_ValidationScriptsPartial.cshtml`.
+  - Tests:
+    - Backend: `tests/FUNews.Tests/AuthenticationAndRoleTests.cs` (kiểm thử 8/8 tiêu chí xác thực, JWT, phân quyền role, và chặn Lecturer ghi dữ liệu), `tests/FUNews.Tests/HttpContractAndODataTests.cs` (cập nhật token xác thực admin cho regression check).
+    - Frontend: `tests/FUNews.Client.Tests/ClientAuthenticationTests.cs` (kiểm tra gắn Bearer token qua DelegatingHandler, validation model), `tests/FUNews.Client.Tests/LoginRazorPageTests.cs` (kiểm tra luồng đăng nhập PageModel, session, và claims không sinh ID giả cho Admin).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln` -> Build succeeded (0 Warning, 0 Error).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln` -> Build succeeded (0 Warning, 0 Error).
+  - `dotnet test ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln` -> Passed! (Passed: 39, Failed: 0, Skipped: 0).
+  - `dotnet test ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln` -> Passed! (Passed: 10, Failed: 0, Skipped: 0).
+- UI/SQL/API evidence:
+  - Cả 3 vai trò (Admin config, Staff DB, Lecturer DB) đăng nhập thành công với JWT token ký cryptographic HMAC-SHA256, đầy đủ claim vai trò và định danh an toàn.
+  - Sai tài khoản hoặc mật khẩu trả về 401 Unauthorized với RFC 7807 ProblemDetails ("Email hoặc mật khẩu không chính xác.").
+  - Admin tuyệt đối không có AccountID trong JWT token hay DTO response (`AccountId = null`), không gán ID giả 0 hay số âm.
+  - Phân quyền API: Token Giảng viên (Lecturer) gọi các endpoint ghi (POST/PUT/DELETE Category, Tag, News, Account) bị chặn với 403 Forbidden. Token Nhân viên (Staff) được ủy quyền gọi ghi Category/Tag/News. Token Admin truy cập được endpoint Account.
+  - FE Shell điều hướng thay đổi linh hoạt theo vai trò: Admin thấy Quản lý tài khoản / Báo cáo; Staff thấy Tin tức / Quản lý bài viết / Chuyên mục / Thẻ tin / Tin của tôi / Hồ sơ; Lecturer dùng public shell với badge Giảng viên; Chưa đăng nhập hiển thị nút Đăng nhập / Tìm kiếm.
+  - Form Đăng nhập và Đăng xuất bảo vệ bằng Antiforgery token, hỗ trợ client validation, tự động xóa mật khẩu khi gặp lỗi.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-005 — Danh sách và thêm tài khoản
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 004
 - Actor: Admin
 - Điểm vào/phạm vi file: /admin/accounts; /api/account
@@ -213,10 +233,25 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE DTOs & Logic: [CreateAccountRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/CreateAccountRequestDto.cs), [IAccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/IAccountService.cs), [AccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/AccountService.cs), [AccountController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/AccountController.cs), [SqlSequenceService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Sequences/SqlSequenceService.cs).
+  - FE DataAccess & Logic: [CreateAccountApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/CreateAccountApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs), [IAccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/IAccountClientService.cs), [AccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/AccountClientService.cs).
+  - FE Presentation (Razor Page): [Accounts.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Accounts.cshtml), [Accounts.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Accounts.cshtml.cs).
+  - Tests: [AccountManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/AccountManagementTests.cs), [AccountsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/AccountsRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 46/46 Passed (100%).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 21/21 Passed (100%).
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Email trùng bị chặn ở client-side (blur check, validate trước submit) và server-side (400 ProblemDetails với field error `AccountEmail`); duy trì index `UQ_SystemAccount_AccountEmail` chống race condition.
+    2. Password được hash bằng BCrypt qua `IPasswordHasher` trước khi lưu vào DB SQL Server (xác thực trực tiếp bằng `VerifyPassword`).
+    3. List và DTO không chứa trường password hay hash, DTO reflection test xác nhận toàn bộ DTO không chứa token nhạy cảm.
+    4. Modal AJAX thực hiện POST kèm antiforgery header `X-CSRF-TOKEN`, khi tạo thành công đóng modal, chèn dòng mới vào bảng bằng DOM injection, cập nhật badge số lượng và hiển thị Toast thông báo mà không reload toàn bộ trang; khi có lỗi giữ nguyên input người dùng và highlight trường lỗi.
+    5. Role ngoài 1 (Staff) và 2 (Lecturer) (0, 3, -1, null) bị từ chối với 400 Bad Request cả tầng DTO DataAnnotations lẫn Service Validation.
+    6. Endpoint API `/api/account` được bảo vệ bằng `[Authorize(Roles = "Admin")]`: truy cập Anonymous trả về 401 Unauthorized, truy cập với token Staff/Lecturer bị chặn với 403 Forbidden.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-006 — Sửa và xóa tài khoản
 

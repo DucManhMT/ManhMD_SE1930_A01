@@ -1,6 +1,8 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Models;
 using FUNews.BusinessLogic.Services;
 using ManhMD_SE1930_A01_BE.OData;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 
@@ -8,6 +10,7 @@ namespace ManhMD_SE1930_A01_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class AccountController : ControllerBase
 {
     private readonly IAccountService _accountService;
@@ -40,4 +43,17 @@ public class AccountController : ControllerBase
 
         return Ok(account);
     }
+
+    [HttpPost]
+    public async Task<ActionResult<AccountDto>> Create([FromBody] CreateAccountRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var created = await _accountService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.AccountId }, created);
+    }
 }
+

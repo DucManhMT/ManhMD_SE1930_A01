@@ -1,0 +1,22 @@
+@page "/search"
+@model ManhMD_SE1930_A01_FE.Pages.SearchModel
+@{
+    ViewData["Title"] = "Tìm kiếm tin tức";
+}
+
+<div class="container fu-container-public">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Tìm kiếm bài viết tin tức</h1>
+            <p class="text-muted small mb-0">Tìm kiếm nâng cao theo từ khóa, chuyên mục, tác giả và ngày đăng</p>
+        </div>
+    </div>
+
+    <div class="card card-fu shadow-sm p-4 text-center my-4">
+        <div class="py-4">
+            <h2 class="h5 fw-bold text-primary mb-2">Chức năng Tìm kiếm tin tức</h2>
+            <p class="text-muted mb-3">Màn hình tìm kiếm nâng cao kết hợp OData filter đang được phát triển trong task <strong>[FUN-017]</strong>.</p>
+            <a asp-page="/Index" class="btn btn-outline-primary btn-sm">Quay về trang tin tức</a>
+        </div>
+    </div>
+</div>
