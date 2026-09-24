@@ -241,16 +241,22 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 - Lệnh và kết quả build/test:
   - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
   - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
-  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 46/46 Passed (100%).
-  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 21/21 Passed (100%).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 47/47 Passed (100%) — gồm 1 regression test M1.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 26/26 Passed (100%) — gồm 5 regression tests M2.
 - UI/SQL/API evidence:
   - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
-    1. Email trùng bị chặn ở client-side (blur check, validate trước submit) và server-side (400 ProblemDetails với field error `AccountEmail`); duy trì index `UQ_SystemAccount_AccountEmail` chống race condition.
+    1. Email trùng bị chặn ở client-side (blur gọi server `/admin/accounts?handler=CheckEmail` cover toàn bộ tài khoản, không chỉ ≤100 row trên bảng) và server-side (400 ProblemDetails với field error `AccountEmail`); duy trì index `UQ_SystemAccount_AccountEmail` chống race condition.
     2. Password được hash bằng BCrypt qua `IPasswordHasher` trước khi lưu vào DB SQL Server (xác thực trực tiếp bằng `VerifyPassword`).
     3. List và DTO không chứa trường password hay hash, DTO reflection test xác nhận toàn bộ DTO không chứa token nhạy cảm.
     4. Modal AJAX thực hiện POST kèm antiforgery header `X-CSRF-TOKEN`, khi tạo thành công đóng modal, chèn dòng mới vào bảng bằng DOM injection, cập nhật badge số lượng và hiển thị Toast thông báo mà không reload toàn bộ trang; khi có lỗi giữ nguyên input người dùng và highlight trường lỗi.
     5. Role ngoài 1 (Staff) và 2 (Lecturer) (0, 3, -1, null) bị từ chối với 400 Bad Request cả tầng DTO DataAnnotations lẫn Service Validation.
     6. Endpoint API `/api/account` được bảo vệ bằng `[Authorize(Roles = "Admin")]`: truy cập Anonymous trả về 401 Unauthorized, truy cập với token Staff/Lecturer bị chặn với 403 Forbidden.
+  - Bản sửa sau review:
+    - [M1] `AccountService.cs`: `DbUpdateException` catch kiểm tra constraint name trong inner message; email uniqueness violation → 400 + `AccountEmail` field error; PK/FK collision → re-throw → middleware trả 409 Conflict đúng loại.
+    - [M2] `Accounts.cshtml.cs`: thêm `OnGetCheckEmailAsync` handler (OData `$filter=accountEmail eq '...'&$top=1&$count=true`) cover toàn bộ tài khoản trong DB.
+    - [M2] `Accounts.cshtml`: email blur handler nay gọi server endpoint (async fetch) thay vì chỉ scan DOM; fallback khi network lỗi không block UI.
+    - [M2] `AccountsRazorPageTests.cs`: `FakeAccountClientService` hỗ trợ `accountEmail eq` filter; 5 regression test cho `OnGetCheckEmailAsync`.
+    - [M1] `AccountManagementTests.cs`: 1 regression test `Regression_M1_DuplicateEmail_Returns400_WithAccountEmailFieldError`.
 - Blocker/giả định phát sinh: Không có.
 
 ## FUN-006 — Sửa và xóa tài khoản

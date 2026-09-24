@@ -47,6 +47,16 @@ public class AccountsRazorPageTests
                 {
                     filtered = filtered.Where(a => a.AccountName != null && a.AccountName.Contains("Staff"));
                 }
+
+                // M2 regression: support accountEmail eq 'value' filter used by OnGetCheckEmailAsync
+                var eqMatch = System.Text.RegularExpressions.Regex.Match(
+                    odataQuery, @"accountEmail eq '([^']*)'", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (eqMatch.Success)
+                {
+                    var targetEmail = eqMatch.Groups[1].Value.ToLowerInvariant();
+                    filtered = filtered.Where(a => a.AccountEmail != null
+                        && a.AccountEmail.Trim().ToLowerInvariant() == targetEmail);
+                }
             }
 
             var result = filtered.ToList();
@@ -229,5 +239,60 @@ public class AccountsRazorPageTests
 
         var propSuccess = jsonResult.Value.GetType().GetProperty("success")?.GetValue(jsonResult.Value);
         Assert.Equal(false, propSuccess);
+    }
+
+    // ─── M2 Regression: OnGetCheckEmailAsync ────────────────────────────────
+
+    [Fact]
+    public async Task OnGetCheckEmailAsync_WithExistingEmail_ShouldReturnIsDuplicateTrue()
+    {
+        // Arrange
+        var (pageModel, _) = CreateAccountsModel();
+        // "staff@funews.org" is pre-seeded in FakeAccountClientService
+        const string existingEmail = "staff@funews.org";
+
+        // Act
+        var result = await pageModel.OnGetCheckEmailAsync(existingEmail, CancellationToken.None);
+
+        // Assert
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        var isDuplicate = jsonResult.Value!.GetType().GetProperty("isDuplicate")?.GetValue(jsonResult.Value);
+        var checkFailed = jsonResult.Value.GetType().GetProperty("checkFailed")?.GetValue(jsonResult.Value);
+        Assert.Equal(true, isDuplicate);
+        Assert.Equal(false, checkFailed);
+    }
+
+    [Fact]
+    public async Task OnGetCheckEmailAsync_WithNewEmail_ShouldReturnIsDuplicateFalse()
+    {
+        // Arrange
+        var (pageModel, _) = CreateAccountsModel();
+        const string newEmail = "brand-new@funews.org";
+
+        // Act
+        var result = await pageModel.OnGetCheckEmailAsync(newEmail, CancellationToken.None);
+
+        // Assert
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        var isDuplicate = jsonResult.Value!.GetType().GetProperty("isDuplicate")?.GetValue(jsonResult.Value);
+        Assert.Equal(false, isDuplicate);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task OnGetCheckEmailAsync_WithEmptyOrNullEmail_ShouldReturnIsDuplicateFalse(string? email)
+    {
+        // Arrange
+        var (pageModel, _) = CreateAccountsModel();
+
+        // Act
+        var result = await pageModel.OnGetCheckEmailAsync(email, CancellationToken.None);
+
+        // Assert
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        var isDuplicate = jsonResult.Value!.GetType().GetProperty("isDuplicate")?.GetValue(jsonResult.Value);
+        Assert.Equal(false, isDuplicate);
     }
 }

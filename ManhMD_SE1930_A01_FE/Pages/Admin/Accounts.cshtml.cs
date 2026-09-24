@@ -72,6 +72,38 @@ public class AccountsModel : PageModel
         });
     }
 
+    /// <summary>
+    /// Live server-side email uniqueness check for the creation modal blur handler.
+    /// Queries the BE API via OData $filter eq so the check covers all accounts,
+    /// not just the ≤100 rows visible in the table (M2 fix).
+    /// Returns: { isDuplicate: bool, checkFailed: bool }
+    /// </summary>
+    public async Task<IActionResult> OnGetCheckEmailAsync(string? email, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return new JsonResult(new { isDuplicate = false, checkFailed = false });
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        // OData literal: escape single-quotes for safe query string inclusion.
+        var escapedEmail = normalizedEmail.Replace("'", "''");
+        var query = $"$filter=accountEmail eq '{escapedEmail}'&$top=1&$count=true";
+
+        try
+        {
+            var envelope = await _accountClientService.GetAccountsAsync(query, cancellationToken);
+            var isDuplicate = (envelope.Count ?? 0) > 0 || (envelope.Value?.Count ?? 0) > 0;
+            return new JsonResult(new { isDuplicate, checkFailed = false });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "CheckEmail: Failed to verify uniqueness for email {Email}", email);
+            // Cannot check → do not block UI; server POST will catch any duplicate.
+            return new JsonResult(new { isDuplicate = false, checkFailed = true });
+        }
+    }
+
     public async Task<IActionResult> OnPostCreateAsync([FromBody] CreateAccountInputModel input)
     {
         if (input == null)

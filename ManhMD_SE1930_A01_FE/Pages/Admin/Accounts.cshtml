@@ -272,18 +272,40 @@
                 return emails;
             }
 
-            // Kiểm tra email trùng khi rời input email
-            emailInput?.addEventListener('blur', function () {
+            // Kiểm tra email trùng khi rời input email – gọi server để kiểm tra toàn bộ tài khoản (M2 fix)
+            emailInput?.addEventListener('blur', async function () {
                 const emailVal = emailInput.value.trim().toLowerCase();
                 if (!emailVal) return;
 
+                if (emailInput.validity.typeMismatch) {
+                    setFieldError(emailInput, 'errorAccountEmail', 'Địa chỉ email không đúng định dạng.');
+                    return;
+                }
+
+                // Fast-path: check visible rows first (instant, no network)
                 const existing = getExistingEmails();
                 if (existing.has(emailVal)) {
                     setFieldError(emailInput, 'errorAccountEmail', 'Email này đã tồn tại trong danh sách tài khoản hệ thống.');
-                } else if (emailInput.validity.typeMismatch) {
-                    setFieldError(emailInput, 'errorAccountEmail', 'Địa chỉ email không đúng định dạng.');
-                } else {
-                    clearFieldError(emailInput, 'errorAccountEmail');
+                    return;
+                }
+
+                // Live server-side check – covers all accounts, including those beyond $top=100
+                try {
+                    const resp = await fetch(`/admin/accounts?handler=CheckEmail&email=${encodeURIComponent(emailVal)}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.isDuplicate) {
+                            setFieldError(emailInput, 'errorAccountEmail', 'Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.');
+                        } else {
+                            clearFieldError(emailInput, 'errorAccountEmail');
+                        }
+                        // data.checkFailed === true: server could not verify; leave field neutral
+                    }
+                } catch {
+                    // Network error: leave field neutral; POST will catch any duplicate
                 }
             });
 

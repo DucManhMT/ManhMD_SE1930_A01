@@ -268,4 +268,44 @@ public class AccountManagementTests : IClassFixture<WebApplicationFactory<Progra
         Assert.NotNull(problem);
         Assert.NotEmpty(problem.Errors);
     }
+
+    // ─── M1 Regression: DbUpdateException mapping ───────────────────────────
+
+    /// <summary>
+    /// Regression guard for M1 fix: the email-uniqueness duplicate path must still
+    /// return 400 + field error on "AccountEmail", NOT 409 or a generic message.
+    /// </summary>
+    [Fact]
+    public async Task Regression_M1_DuplicateEmail_Returns400_WithAccountEmailFieldError()
+    {
+        var adminClient = CreateClientForRole("Admin");
+        var sharedEmail = $"m1_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+
+        // First account must succeed
+        var first = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "M1 First",
+            AccountEmail = sharedEmail,
+            AccountRole = 1,
+            AccountPassword = "Password123"
+        });
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+
+        // Second account with same email must return 400 (not 409 or 500)
+        var second = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "M1 Second",
+            AccountEmail = sharedEmail,
+            AccountRole = 2,
+            AccountPassword = "Password456"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+
+        // Must carry a field-level error on AccountEmail, not a generic body
+        var problem = await second.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.True(
+            problem.Errors.ContainsKey("AccountEmail") || problem.Errors.ContainsKey("accountEmail"),
+            "Expected AccountEmail field error from email-uniqueness ValidationException, not a generic message.");
+    }
 }

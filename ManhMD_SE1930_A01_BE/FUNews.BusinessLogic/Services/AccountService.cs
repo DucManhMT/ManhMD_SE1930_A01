@@ -131,9 +131,26 @@ public class AccountService : IAccountService
                 RoleName = created.AccountRole == 1 ? "Staff" : created.AccountRole == 2 ? "Lecturer" : "Unknown"
             };
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
-            throw new ValidationException(nameof(request.AccountEmail), "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
+            // Distinguish unique-email constraint violation from other DB errors (e.g. PK collision).
+            // SQL Server surfaces the constraint name in the inner exception message.
+            var innerMsg = ex.InnerException?.Message ?? ex.Message;
+            var isEmailUniqueViolation =
+                innerMsg.Contains("UQ_SystemAccount_AccountEmail", StringComparison.OrdinalIgnoreCase)
+                || (innerMsg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                    && innerMsg.Contains("AccountEmail", StringComparison.OrdinalIgnoreCase));
+
+            if (isEmailUniqueViolation)
+            {
+                throw new ValidationException(
+                    nameof(request.AccountEmail),
+                    "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
+            }
+
+            // For all other DbUpdateExceptions (PK collision, FK, etc.),
+            // re-throw so ExceptionHandlingMiddleware returns 409 Conflict.
+            throw;
         }
     }
 }
