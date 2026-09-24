@@ -11,7 +11,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | Task | Nội dung | Dependencies | Trạng thái |
 |---|---|---|---|
 | FUN-001 | Khởi tạo hai solution | Không | DONE |
-| FUN-002 | Database và tầng truy cập | 001 | TODO |
+| FUN-002 | Database và tầng truy cập | 001 | DONE |
 | FUN-003 | HTTP contract và OData nền tảng | 002 | TODO |
 | FUN-004 | Đăng nhập và shell theo role | 003 | TODO |
 | FUN-005 | Danh sách và thêm tài khoản | 004 | TODO |
@@ -65,7 +65,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-002 — Database và tầng truy cập
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 001
 - Actor: Developer
 - Điểm vào/phạm vi file: SQL gốc; database/patches; DataAccess BE
@@ -84,10 +84,38 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Database patches: `database/patches/001_preflight_check.sql`, `database/patches/002_apply_patches.sql`, `database/patches/003_create_sequences.sql`, `database/patches/004_verify_patches.sql`
+  - Backend DataAccess:
+    - Entities: `Category.cs` (map `CategoryDesciption`), `SystemAccount.cs`, `Tag.cs`, `NewsArticle.cs`, `NewsTag.cs`
+    - Context: `FUNewsDbContext.cs`
+    - Sequences: `ISqlSequenceService.cs`, `SqlSequenceService.cs`
+    - Security & Seeding: `IPasswordHasher.cs`, `BcryptPasswordHasher.cs`, `IPasswordSeeder.cs`, `PasswordSeeder.cs`
+    - DAOs: `CategoryDAO.cs`, `SystemAccountDAO.cs`, `TagDAO.cs`, `NewsArticleDAO.cs`, `NewsTagDAO.cs`
+    - Repositories: `ICategoryRepository.cs` / `CategoryRepository.cs`, `ISystemAccountRepository.cs` / `SystemAccountRepository.cs`, `ITagRepository.cs` / `TagRepository.cs`, `INewsArticleRepository.cs` / `NewsArticleRepository.cs`, `INewsTagRepository.cs` / `NewsTagRepository.cs`
+    - Extensions: `DataAccessServiceCollectionExtensions.cs`
+  - Backend BusinessLogic:
+    - Options: `DefaultAdminOptions.cs`, `JwtOptions.cs`, `AppOptions.cs`
+    - Extensions: `BusinessLogicServiceCollectionExtensions.cs`
+  - Backend API:
+    - `Program.cs` cấu hình DbContext Scoped, DAOs/Repositories Scoped, Config Options Singleton, và PasswordSeeder lúc khởi động.
+  - Tests:
+    - `tests/FUNews.Tests/DatabaseAndDataAccessTests.cs` (11 tests pass toàn bộ 8 tiêu chí).
+- Lệnh và kết quả build/test:
+  - `sqlcmd -S "localhost" -d "FUNewsManagement" -I -E -i "database\patches\001_preflight_check.sql"` -> Pass (0 warning, 0 duplicate, phát hiện 5 dòng self-reference và 2 CASCADE FK)
+  - `sqlcmd -S "localhost" -d "FUNewsManagement" -I -E -i "database\patches\002_apply_patches.sql"` -> Pass (Updated parent IDs to NULL, trimmed strings, expanded AccountPassword, FK NO ACTION, 4 filtered unique indexes)
+  - `sqlcmd -S "localhost" -d "FUNewsManagement" -I -E -i "database\patches\003_create_sequences.sql"` -> Pass (Created Seq_AccountID, Seq_TagID, Seq_NewsArticleID)
+  - `sqlcmd -S "localhost" -d "FUNewsManagement" -I -E -i "database\patches\004_verify_patches.sql"` -> Pass (Tất cả ràng buộc, sequence, index và data type đã xác minh)
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln` -> Build succeeded (0 Warning, 0 Error)
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj` -> Passed! (Passed: 11, Failed: 0, Skipped: 0)
+  - `dotnet test ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln` -> Passed! (Passed: 2, Failed: 0)
+- UI/SQL/API evidence:
+  - SQL Server `localhost` database `FUNewsManagement` đã áp dụng đầy đủ 4 patch.
+  - Các tests kiểm tra trực tiếp trên DB thật `FUNewsManagement`: đọc được Category (5 rows), NewsArticle (5 rows), Tag (9 rows), SystemAccount (5 rows), NewsTag (18 rows).
+  - PasswordSeeder đã hash an toàn mật khẩu demo `@1` sang BCrypt format (`$2a$`), xác nhận không re-hash khi chạy lại.
+  - Kiểm tra duplicate email trên DB thật ném `DbUpdateException`.
+  - Sequences hoạt động đúng quy tắc và không trùng lặp.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-003 — HTTP contract và OData nền tảng
 
