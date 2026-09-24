@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Helpers;
 using FUNews.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,29 +25,7 @@ public class NewsArticleService : INewsArticleService
         return query
             .OrderByDescending(a => a.CreatedDate)
             .ThenByDescending(a => a.NewsArticleID)
-            .Select(a => new NewsArticleDto
-            {
-                NewsArticleId = a.NewsArticleID,
-                NewsTitle = a.NewsTitle,
-                Headline = a.Headline,
-                NewsContent = a.NewsContent,
-                NewsSource = a.NewsSource,
-                CategoryId = a.CategoryID,
-                CategoryName = a.Category != null ? a.Category.CategoryName : null,
-                NewsStatus = a.NewsStatus,
-                CreatedById = a.CreatedByID,
-                AuthorName = a.CreatedBy != null ? a.CreatedBy.AccountName : null,
-                CreatedDate = a.CreatedDate,
-                UpdatedById = a.UpdatedByID,
-                LastEditorName = a.UpdatedBy != null ? a.UpdatedBy.AccountName : null,
-                ModifiedDate = a.ModifiedDate,
-                Tags = a.NewsTags.Select(nt => new TagDto
-                {
-                    TagId = nt.TagID,
-                    TagName = nt.Tag != null ? nt.Tag.TagName : null,
-                    Note = nt.Tag != null ? nt.Tag.Note : null
-                }).ToList()
-            });
+            .Select(NewsArticleMappingHelper.ProjectToDto);
     }
 
     public async Task<NewsArticleDto?> GetByIdAsync(string id, bool? activeOnly = null, CancellationToken cancellationToken = default)
@@ -57,28 +36,8 @@ public class NewsArticleService : INewsArticleService
             query = query.Where(a => a.NewsStatus == true);
         }
 
-        return await query.Select(a => new NewsArticleDto
-        {
-            NewsArticleId = a.NewsArticleID,
-            NewsTitle = a.NewsTitle,
-            Headline = a.Headline,
-            NewsContent = a.NewsContent,
-            NewsSource = a.NewsSource,
-            CategoryId = a.CategoryID,
-            CategoryName = a.Category != null ? a.Category.CategoryName : null,
-            NewsStatus = a.NewsStatus,
-            CreatedById = a.CreatedByID,
-            AuthorName = a.CreatedBy != null ? a.CreatedBy.AccountName : null,
-            CreatedDate = a.CreatedDate,
-            UpdatedById = a.UpdatedByID,
-            LastEditorName = a.UpdatedBy != null ? a.UpdatedBy.AccountName : null,
-            ModifiedDate = a.ModifiedDate,
-            Tags = a.NewsTags.Select(nt => new TagDto
-            {
-                TagId = nt.TagID,
-                TagName = nt.Tag != null ? nt.Tag.TagName : null,
-                Note = nt.Tag != null ? nt.Tag.Note : null
-            }).ToList()
-        }).FirstOrDefaultAsync(cancellationToken);
+        return await query
+            .Select(NewsArticleMappingHelper.ProjectToDto)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 using FUNews.BusinessLogic.DTOs;
 using FUNews.BusinessLogic.Exceptions;
+using FUNews.BusinessLogic.Helpers;
 using FUNews.BusinessLogic.Models;
 using FUNews.BusinessLogic.Options;
 using FUNews.BusinessLogic.Security;
@@ -31,13 +32,7 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var trimmedEmail = request.Email?.Trim() ?? string.Empty;
-        var plainPassword = request.Password ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(trimmedEmail) || string.IsNullOrWhiteSpace(plainPassword))
-        {
-            throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
-        }
+        var (trimmedEmail, plainPassword) = AuthHelper.ValidateAndExtractCredentials(request.Email, request.Password);
 
         // 1. Kiểm tra tài khoản Quản trị viên (Admin) từ file cấu hình appsettings.json
         if (!string.IsNullOrWhiteSpace(_adminOptions.Email) &&
@@ -45,15 +40,7 @@ public class AuthService : IAuthService
         {
             if (string.Equals(plainPassword, _adminOptions.Password))
             {
-                var adminUser = new UserInfoDto
-                {
-                    AccountId = null, // Ràng buộc bắt buộc: Admin không có bản ghi trong SystemAccount và không gán ID giả
-                    AccountName = "Quản trị viên",
-                    AccountEmail = _adminOptions.Email,
-                    AccountRole = null,
-                    RoleName = "Admin"
-                };
-
+                var adminUser = AuthHelper.CreateAdminUserInfo(_adminOptions.Email);
                 var token = _jwtTokenService.GenerateToken(adminUser, out var expiresAt);
                 return new LoginResponseDto
                 {
@@ -80,31 +67,10 @@ public class AuthService : IAuthService
             throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
         }
 
-        // Phân quyền theo AccountRole: 1 là Staff, 2 là Lecturer
-        string roleName;
-        if (account.AccountRole == 1)
-        {
-            roleName = "Staff";
-        }
-        else if (account.AccountRole == 2)
-        {
-            roleName = "Lecturer";
-        }
-        else
-        {
-            throw new ForbiddenException("Tài khoản không có quyền truy cập hệ thống.");
-        }
-
-        var userInfo = new UserInfoDto
-        {
-            AccountId = account.AccountID,
-            AccountName = account.AccountName ?? string.Empty,
-            AccountEmail = account.AccountEmail ?? string.Empty,
-            AccountRole = account.AccountRole,
-            RoleName = roleName
-        };
-
+        // Phân quyền theo AccountRole và tạo thông tin UserInfo an toàn
+        var userInfo = AuthHelper.CreateAccountUserInfo(account);
         var jwtToken = _jwtTokenService.GenerateToken(userInfo, out var tokenExpiresAt);
+
         return new LoginResponseDto
         {
             Token = jwtToken,

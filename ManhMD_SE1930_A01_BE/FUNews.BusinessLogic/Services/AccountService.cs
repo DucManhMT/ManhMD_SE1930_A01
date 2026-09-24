@@ -1,5 +1,6 @@
 using FUNews.BusinessLogic.DTOs;
 using FUNews.BusinessLogic.Exceptions;
+using FUNews.BusinessLogic.Helpers;
 using FUNews.BusinessLogic.Models;
 using FUNews.DataAccess.Entities;
 using FUNews.DataAccess.Repositories;
@@ -42,67 +43,26 @@ public class AccountService : IAccountService
     public async Task<AccountDto?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         var account = await _accountRepository.GetByIdAsync(id, cancellationToken);
-        if (account == null) return null;
-
-        return new AccountDto
-        {
-            AccountId = account.AccountID,
-            AccountName = account.AccountName,
-            AccountEmail = account.AccountEmail,
-            AccountRole = account.AccountRole,
-            RoleName = account.AccountRole == 1 ? "Staff" : account.AccountRole == 2 ? "Lecturer" : "Unknown"
-        };
+        return account != null ? AccountMappingHelper.ToDto(account) : null;
     }
 
     public async Task<AccountDto> CreateAsync(CreateAccountRequestDto request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // 1. Validate AccountName
-        var trimmedName = request.AccountName?.Trim();
-        if (string.IsNullOrWhiteSpace(trimmedName))
-        {
-            throw new ValidationException(nameof(request.AccountName), "Họ và tên là bắt buộc.");
-        }
-        if (trimmedName.Length > 100)
-        {
-            throw new ValidationException(nameof(request.AccountName), "Họ và tên không được vượt quá 100 ký tự.");
-        }
+        var trimmedName = AccountValidationHelper.ValidateAndTrimName(request.AccountName);
+        var trimmedEmail = AccountValidationHelper.ValidateAndTrimEmail(request.AccountEmail);
+        var role = AccountValidationHelper.ValidateRole(request.AccountRole);
+        AccountValidationHelper.ValidatePassword(request.AccountPassword);
 
-        // 2. Validate AccountEmail
-        var trimmedEmail = request.AccountEmail?.Trim();
-        if (string.IsNullOrWhiteSpace(trimmedEmail))
-        {
-            throw new ValidationException(nameof(request.AccountEmail), "Email là bắt buộc.");
-        }
-        if (trimmedEmail.Length > 70)
-        {
-            throw new ValidationException(nameof(request.AccountEmail), "Email không được vượt quá 70 ký tự.");
-        }
-
-        // 3. Validate AccountRole (Acceptance criteria 5: Role ngoài 1/2 bị từ chối)
-        if (!request.AccountRole.HasValue || (request.AccountRole.Value != 1 && request.AccountRole.Value != 2))
-        {
-            throw new ValidationException(nameof(request.AccountRole), "Vai trò không hợp lệ. Chỉ chấp nhận Nhân viên (1) hoặc Giảng viên (2).");
-        }
-
-        // 4. Validate AccountPassword
-        if (string.IsNullOrWhiteSpace(request.AccountPassword) || request.AccountPassword.Length < 6)
-        {
-            throw new ValidationException(nameof(request.AccountPassword), "Mật khẩu phải có độ dài tối thiểu 6 ký tự.");
-        }
-
-        // 5. Email uniqueness check (Acceptance criteria 1: Email trùng bị chặn client/server)
         var isUnique = await _accountRepository.IsEmailUniqueAsync(trimmedEmail, null, cancellationToken);
         if (!isUnique)
         {
             throw new ValidationException(nameof(request.AccountEmail), "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
         }
 
-        // 6. Hash password with BCrypt (Acceptance criteria 2: Hash lưu DB)
         var hashedPassword = _passwordHasher.HashPassword(request.AccountPassword);
 
-        // 7. Generate safe sequential AccountId
         short nextId = await _sqlSequenceService.GetNextAccountIdAsync(cancellationToken);
         while (await _accountRepository.ExistsAsync(nextId, cancellationToken))
         {
@@ -114,44 +74,80 @@ public class AccountService : IAccountService
             AccountID = nextId,
             AccountName = trimmedName,
             AccountEmail = trimmedEmail,
-            AccountRole = request.AccountRole.Value,
+            AccountRole = role,
             AccountPassword = hashedPassword
         };
 
         try
         {
             var created = await _accountRepository.AddAsync(account, cancellationToken);
-
-            return new AccountDto
-            {
-                AccountId = created.AccountID,
-                AccountName = created.AccountName,
-                AccountEmail = created.AccountEmail,
-                AccountRole = created.AccountRole,
-                RoleName = created.AccountRole == 1 ? "Staff" : created.AccountRole == 2 ? "Lecturer" : "Unknown"
-            };
+            return AccountMappingHelper.ToDto(created);
         }
         catch (DbUpdateException ex)
         {
-            // Distinguish unique-email constraint violation from other DB errors (e.g. PK collision).
-            // SQL Server surfaces the constraint name in the inner exception message.
-            var innerMsg = ex.InnerException?.Message ?? ex.Message;
-            var isEmailUniqueViolation =
-                innerMsg.Contains("UQ_SystemAccount_AccountEmail", StringComparison.OrdinalIgnoreCase)
-                || (innerMsg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
-                    && innerMsg.Contains("AccountEmail", StringComparison.OrdinalIgnoreCase));
-
-            if (isEmailUniqueViolation)
-            {
-                throw new ValidationException(
-                    nameof(request.AccountEmail),
-                    "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
-            }
-
-            // For all other DbUpdateExceptions (PK collision, FK, etc.),
-            // re-throw so ExceptionHandlingMiddleware returns 409 Conflict.
+            AccountValidationHelper.HandleDbUpdateException(ex);
             throw;
         }
     }
-}
 
+    public async Task<AccountDto> UpdateAsync(short id, UpdateAccountRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var trimmedName = AccountValidationHelper.ValidateAndTrimName(request.AccountName);
+        var trimmedEmail = AccountValidationHelper.ValidateAndTrimEmail(request.AccountEmail);
+        var role = AccountValidationHelper.ValidateRole(request.AccountRole);
+
+        var account = await _accountRepository.GetByIdAsync(id, cancellationToken);
+        if (account == null)
+        {
+            throw new NotFoundException($"Tài khoản với mã {id} không tồn tại.");
+        }
+
+        var isUnique = await _accountRepository.IsEmailUniqueAsync(trimmedEmail, id, cancellationToken);
+        if (!isUnique)
+        {
+            throw new ValidationException(nameof(request.AccountEmail), "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
+        }
+
+        account.AccountName = trimmedName;
+        account.AccountEmail = trimmedEmail;
+        account.AccountRole = role;
+
+        try
+        {
+            var updated = await _accountRepository.UpdateAsync(account, cancellationToken);
+            return AccountMappingHelper.ToDto(updated);
+        }
+        catch (DbUpdateException ex)
+        {
+            AccountValidationHelper.HandleDbUpdateException(ex);
+            throw;
+        }
+    }
+
+    public async Task DeleteAsync(short id, CancellationToken cancellationToken = default)
+    {
+        var account = await _accountRepository.GetByIdAsync(id, cancellationToken);
+        if (account == null)
+        {
+            throw new NotFoundException($"Tài khoản với mã {id} không tồn tại.");
+        }
+
+        if (await _accountRepository.HasCreatedArticlesAsync(id, cancellationToken))
+        {
+            throw new ConflictException("Không thể xóa tài khoản vì tài khoản này đã được sử dụng làm tác giả (CreatedBy) của bài viết.");
+        }
+
+        if (await _accountRepository.HasUpdatedArticlesAsync(id, cancellationToken))
+        {
+            throw new ConflictException("Không thể xóa tài khoản vì tài khoản này đã được sử dụng làm người chỉnh sửa (UpdatedBy) của bài viết.");
+        }
+
+        var deleted = await _accountRepository.DeleteAsync(id, cancellationToken);
+        if (!deleted)
+        {
+            throw new NotFoundException($"Tài khoản với mã {id} không tồn tại.");
+        }
+    }
+}

@@ -55,5 +55,24 @@ public class AccountController : ControllerBase
         var created = await _accountService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.AccountId }, created);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<AccountDto>> Update(short id, [FromBody] UpdateAccountRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await _accountService.UpdateAsync(id, request, cancellationToken);
+        return Ok(updated);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(short id, CancellationToken cancellationToken)
+    {
+        await _accountService.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
 }
 

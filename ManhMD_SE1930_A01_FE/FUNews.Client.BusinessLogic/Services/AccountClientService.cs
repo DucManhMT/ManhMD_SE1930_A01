@@ -26,4 +26,14 @@ public class AccountClientService : IAccountClientService
     {
         return _apiClient.CreateAccountAsync(request, cancellationToken);
     }
+
+    public Task<AccountApiModel> UpdateAccountAsync(short id, UpdateAccountApiModel request, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.UpdateAccountAsync(id, request, cancellationToken);
+    }
+
+    public Task DeleteAccountAsync(short id, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.DeleteAccountAsync(id, cancellationToken);
+    }
 }

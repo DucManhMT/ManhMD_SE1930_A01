@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FUNews.Client.BusinessLogic.Helpers;
 using FUNews.Client.BusinessLogic.Services;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.Client.DataAccess.Models;
+using ManhMD_SE1930_A01_FE.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -53,6 +55,25 @@ public class AccountsModel : PageModel
         public string AccountPassword { get; set; } = string.Empty;
     }
 
+    public class UpdateAccountInputModel
+    {
+        [Required(ErrorMessage = "Mã tài khoản là bắt buộc.")]
+        public short AccountId { get; set; }
+
+        [Required(ErrorMessage = "Họ và tên là bắt buộc.")]
+        [StringLength(100, ErrorMessage = "Họ và tên không được vượt quá 100 ký tự.")]
+        public string AccountName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email là bắt buộc.")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
+        [StringLength(70, ErrorMessage = "Email không được vượt quá 70 ký tự.")]
+        public string AccountEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vai trò là bắt buộc.")]
+        [Range(1, 2, ErrorMessage = "Vai trò không hợp lệ. Chỉ chấp nhận Nhân viên (1) hoặc Giảng viên (2).")]
+        public int? AccountRole { get; set; }
+    }
+
     public async Task OnGetAsync()
     {
         await LoadAccountsAsync();
@@ -72,23 +93,14 @@ public class AccountsModel : PageModel
         });
     }
 
-    /// <summary>
-    /// Live server-side email uniqueness check for the creation modal blur handler.
-    /// Queries the BE API via OData $filter eq so the check covers all accounts,
-    /// not just the ≤100 rows visible in the table (M2 fix).
-    /// Returns: { isDuplicate: bool, checkFailed: bool }
-    /// </summary>
-    public async Task<IActionResult> OnGetCheckEmailAsync(string? email, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetCheckEmailAsync(string? email, short? excludeId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(email))
         {
             return new JsonResult(new { isDuplicate = false, checkFailed = false });
         }
 
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-        // OData literal: escape single-quotes for safe query string inclusion.
-        var escapedEmail = normalizedEmail.Replace("'", "''");
-        var query = $"$filter=accountEmail eq '{escapedEmail}'&$top=1&$count=true";
+        var query = ODataFilterHelper.BuildEmailUniquenessQuery(email, excludeId);
 
         try
         {
@@ -99,7 +111,6 @@ public class AccountsModel : PageModel
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "CheckEmail: Failed to verify uniqueness for email {Email}", email);
-            // Cannot check → do not block UI; server POST will catch any duplicate.
             return new JsonResult(new { isDuplicate = false, checkFailed = true });
         }
     }
@@ -111,25 +122,16 @@ public class AccountsModel : PageModel
             return new JsonResult(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
         }
 
-        // Validate ModelState
         if (!ModelState.IsValid)
         {
-            var errors = ModelState
-                .Where(x => x.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    k => NormalizePropertyName(k.Key),
-                    v => v.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-
             return new JsonResult(new
             {
                 success = false,
                 message = "Vui lòng kiểm tra lại thông tin nhập liệu.",
-                errors
+                errors = ValidationResponseHelper.ExtractModelStateErrors(ModelState)
             });
         }
 
-        // Client service validation for role
         if (!input.AccountRole.HasValue || (input.AccountRole.Value != 1 && input.AccountRole.Value != 2))
         {
             return new JsonResult(new
@@ -166,20 +168,11 @@ public class AccountsModel : PageModel
         {
             _logger.LogWarning(ex, "API error while creating account: {Message}", ex.Message);
 
-            var normalizedErrors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-            if (ex.ValidationErrors != null)
-            {
-                foreach (var kvp in ex.ValidationErrors)
-                {
-                    normalizedErrors[NormalizePropertyName(kvp.Key)] = kvp.Value;
-                }
-            }
-
             return new JsonResult(new
             {
                 success = false,
                 message = ex.Message ?? "Không thể tạo tài khoản do lỗi dữ liệu từ hệ thống.",
-                errors = normalizedErrors
+                errors = ValidationResponseHelper.NormalizeApiErrors(ex.ValidationErrors)
             });
         }
         catch (Exception ex)
@@ -193,11 +186,159 @@ public class AccountsModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnGetAccountAsync(short id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var account = await _accountClientService.GetByIdAsync(id, cancellationToken);
+            if (account == null)
+            {
+                return new JsonResult(new
+                {
+                    success = false,
+                    message = $"Không tìm thấy tài khoản với mã #{id}."
+                });
+            }
+
+            return new JsonResult(new
+            {
+                success = true,
+                account
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to retrieve account #{Id}", id);
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Không thể lấy thông tin tài khoản từ máy chủ."
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostUpdateAsync([FromBody] UpdateAccountInputModel input)
+    {
+        if (input == null)
+        {
+            return new JsonResult(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Vui lòng kiểm tra lại thông tin nhập liệu.",
+                errors = ValidationResponseHelper.ExtractModelStateErrors(ModelState)
+            });
+        }
+
+        if (!input.AccountRole.HasValue || (input.AccountRole.Value != 1 && input.AccountRole.Value != 2))
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Vai trò không hợp lệ. Chỉ chấp nhận Nhân viên (1) hoặc Giảng viên (2).",
+                errors = new Dictionary<string, string[]>
+                {
+                    { "AccountRole", new[] { "Vai trò không hợp lệ. Chỉ chấp nhận Nhân viên (1) hoặc Giảng viên (2)." } }
+                }
+            });
+        }
+
+        try
+        {
+            var request = new UpdateAccountApiModel
+            {
+                AccountName = input.AccountName.Trim(),
+                AccountEmail = input.AccountEmail.Trim(),
+                AccountRole = input.AccountRole.Value
+            };
+
+            var updatedAccount = await _accountClientService.UpdateAccountAsync(input.AccountId, request, HttpContext.RequestAborted);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Cập nhật tài khoản thành công cho {updatedAccount.AccountName} ({updatedAccount.AccountEmail}).",
+                account = updatedAccount
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while updating account #{Id}: {Message}", input.AccountId, ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể cập nhật tài khoản do lỗi dữ liệu từ hệ thống.",
+                errors = ValidationResponseHelper.NormalizeApiErrors(ex.ValidationErrors)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while updating account #{Id}", input.AccountId);
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Không thể kết nối đến máy chủ Backend API. Vui lòng thử lại sau."
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(short id)
+    {
+        if (id <= 0 && Request.HasFormContentType && short.TryParse(Request.Form["id"], out var formId))
+        {
+            id = formId;
+        }
+
+        if (id <= 0)
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Mã tài khoản cần xóa không hợp lệ."
+            });
+        }
+
+        try
+        {
+            await _accountClientService.DeleteAccountAsync(id, HttpContext.RequestAborted);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Đã xóa tài khoản #{id} thành công."
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while deleting account #{Id}: {Message}", id, ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể xóa tài khoản."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while deleting account #{Id}", id);
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Không thể kết nối đến máy chủ Backend API. Vui lòng thử lại sau."
+            });
+        }
+    }
+
     private async Task LoadAccountsAsync()
     {
         try
         {
-            var query = BuildODataQuery(SearchTerm, RoleFilter);
+            var query = ODataFilterHelper.BuildAccountsQuery(SearchTerm, RoleFilter);
             var envelope = await _accountClientService.GetAccountsAsync(query, HttpContext.RequestAborted);
             Accounts = envelope.Value ?? new List<AccountApiModel>();
             TotalCount = (int)(envelope.Count ?? Accounts.Count);
@@ -209,52 +350,5 @@ public class AccountsModel : PageModel
             Accounts = new List<AccountApiModel>();
             TotalCount = 0;
         }
-    }
-
-    private static string BuildODataQuery(string? searchTerm, int? roleFilter)
-    {
-        var filters = new List<string>();
-
-        if (roleFilter.HasValue && (roleFilter.Value == 1 || roleFilter.Value == 2))
-        {
-            filters.Add($"accountRole eq {roleFilter.Value}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            var safeTerm = searchTerm.Trim().Replace("'", "''");
-            filters.Add($"(contains(accountName,'{safeTerm}') or contains(accountEmail,'{safeTerm}'))");
-        }
-
-        var queryParts = new List<string>
-        {
-            "$orderby=accountId asc",
-            "$count=true",
-            "$top=100"
-        };
-
-        if (filters.Count > 0)
-        {
-            queryParts.Insert(0, $"$filter={string.Join(" and ", filters)}");
-        }
-
-        return string.Join("&", queryParts);
-    }
-
-    private static string NormalizePropertyName(string propertyName)
-    {
-        var clean = propertyName.Replace("input.", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace("Input.", "", StringComparison.OrdinalIgnoreCase);
-
-        if (clean.Equals("AccountEmail", StringComparison.OrdinalIgnoreCase) || clean.Equals("email", StringComparison.OrdinalIgnoreCase))
-            return "AccountEmail";
-        if (clean.Equals("AccountName", StringComparison.OrdinalIgnoreCase) || clean.Equals("name", StringComparison.OrdinalIgnoreCase))
-            return "AccountName";
-        if (clean.Equals("AccountRole", StringComparison.OrdinalIgnoreCase) || clean.Equals("role", StringComparison.OrdinalIgnoreCase))
-            return "AccountRole";
-        if (clean.Equals("AccountPassword", StringComparison.OrdinalIgnoreCase) || clean.Equals("password", StringComparison.OrdinalIgnoreCase))
-            return "AccountPassword";
-
-        return clean;
     }
 }

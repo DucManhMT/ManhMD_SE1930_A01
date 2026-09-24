@@ -15,7 +15,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-003 | HTTP contract và OData nền tảng | 002 | DONE |
 | FUN-004 | Đăng nhập và shell theo role | 003 | DONE |
 | FUN-005 | Danh sách và thêm tài khoản | 004 | DONE |
-| FUN-006 | Sửa và xóa tài khoản | 005 | TODO |
+| FUN-006 | Sửa và xóa tài khoản | 005 | DONE |
 | FUN-007 | Hồ sơ và đổi mật khẩu | 004 | TODO |
 | FUN-008 | Danh sách và thêm danh mục | 004 | TODO |
 | FUN-009 | Sửa trạng thái và xóa danh mục | 008 | TODO |
@@ -261,7 +261,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-006 — Sửa và xóa tài khoản
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 005
 - Actor: Admin
 - Điểm vào/phạm vi file: /admin/accounts; /api/account/{id}
@@ -278,10 +278,27 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE DTOs & Services: [UpdateAccountRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/UpdateAccountRequestDto.cs), [IAccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/IAccountService.cs), [AccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/AccountService.cs).
+  - BE Controllers: [AccountController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/AccountController.cs).
+  - FE DataAccess: [UpdateAccountApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/UpdateAccountApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic: [IAccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/IAccountClientService.cs), [AccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/AccountClientService.cs).
+  - FE Presentation (Razor Page & UI): [Accounts.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Accounts.cshtml), [Accounts.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Accounts.cshtml.cs).
+  - Tests: [AccountManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/AccountManagementTests.cs), [AccountsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/AccountsRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 53/53 Passed (100%) — gồm 6 tests acceptance criteria FUN-006.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 34/34 Passed (100%) — gồm 8 tests handler/client FUN-006.
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Chặn email trùng: Update đổi sang email đã tồn tại của tài khoản khác bị chặn cả phía FE (blur check với `excludeId`) và BE (`ValidationException` 400 kèm field error `AccountEmail`); update giữ nguyên email của chính mình thì thành công 200 OK.
+    2. Chặn xóa CreatedBy/UpdatedBy được dùng: Gọi DELETE tài khoản có ID trong `NewsArticle.CreatedByID` hoặc `NewsArticle.UpdatedByID` bị chặn với `409 Conflict` (`ConflictException` ProblemDetails có thông điệp rõ ràng).
+    3. Account trống xóa được: Tạo tài khoản không gắn bài viết, gọi DELETE trả về `204 NoContent`, tài khoản bị xóa hoàn toàn khỏi DB và UI xóa dòng tương ứng mà không reload trang.
+    4. Không cascade: FK constraint trên SQL Server (`002_apply_patches.sql`) cấu hình `ON DELETE NO ACTION` và tầng Service/DAO chủ động kiểm tra chặn trước; xác nhận tổng số bài viết trong database giữ nguyên sau các lần cố xóa tài khoản tác giả.
+    5. Stale/missing ID rõ lỗi: Gọi PUT hoặc DELETE với ID không tồn tại (`/api/account/29999`) trả về `404 NotFound` ProblemDetails tường minh.
+    6. Password không bị overwrite khi sửa tên: `UpdateAccountRequestDto` và `UpdateAccountApiModel` không chứa trường password/hash; `AccountService.UpdateAsync` chỉ cập nhật `AccountName`, `AccountEmail`, `AccountRole`. Mật khẩu hash trong DB được bảo toàn nguyên vẹn và xác thực lại bằng BCrypt thành công.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-007 — Hồ sơ và đổi mật khẩu
 

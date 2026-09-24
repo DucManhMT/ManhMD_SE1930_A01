@@ -308,4 +308,274 @@ public class AccountManagementTests : IClassFixture<WebApplicationFactory<Progra
             problem.Errors.ContainsKey("AccountEmail") || problem.Errors.ContainsKey("accountEmail"),
             "Expected AccountEmail field error from email-uniqueness ValidationException, not a generic message.");
     }
+
+    // ─── FUN-006 Acceptance Criteria Tests ───────────────────────────────────
+
+    [Fact]
+    public async Task FUN006_Criterion_01_Update_WithDuplicateEmail_Returns400_AndOwnEmailSucceeds()
+    {
+        var adminClient = CreateClientForRole("Admin");
+        var email1 = $"dup1_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+        var email2 = $"dup2_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+
+        // Create Account 1
+        var create1 = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "User One",
+            AccountEmail = email1,
+            AccountRole = 1,
+            AccountPassword = "Password123"
+        });
+        Assert.Equal(HttpStatusCode.Created, create1.StatusCode);
+        var acc1 = await create1.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(acc1);
+
+        // Create Account 2
+        var create2 = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "User Two",
+            AccountEmail = email2,
+            AccountRole = 2,
+            AccountPassword = "Password123"
+        });
+        Assert.Equal(HttpStatusCode.Created, create2.StatusCode);
+        var acc2 = await create2.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(acc2);
+
+        // 1. Updating Account 2 with Account 1's email must fail with 400 Bad Request
+        var updateDuplicate = await adminClient.PutAsJsonAsync($"api/account/{acc2.AccountId}", new UpdateAccountRequestDto
+        {
+            AccountName = "User Two Renamed",
+            AccountEmail = email1, // Duplicate of acc1
+            AccountRole = 2
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, updateDuplicate.StatusCode);
+        var problem = await updateDuplicate.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.True(problem.Errors.ContainsKey("AccountEmail") || problem.Errors.ContainsKey("accountEmail"));
+
+        // 2. Updating Account 2 keeping its own email must succeed with 200 OK
+        var updateSelf = await adminClient.PutAsJsonAsync($"api/account/{acc2.AccountId}", new UpdateAccountRequestDto
+        {
+            AccountName = "User Two Updated Successfully",
+            AccountEmail = email2, // Own email preserved
+            AccountRole = 1
+        });
+        Assert.Equal(HttpStatusCode.OK, updateSelf.StatusCode);
+        var updated = await updateSelf.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(updated);
+        Assert.Equal("User Two Updated Successfully", updated.AccountName);
+        Assert.Equal(1, updated.AccountRole);
+    }
+
+    [Fact]
+    public async Task FUN006_Criterion_02_Delete_AccountUsedInCreatedByOrUpdatedBy_Returns409Conflict()
+    {
+        var adminClient = CreateClientForRole("Admin");
+
+        // 1. Account 1 is pre-seeded and referenced as CreatedByID in NewsArticle seed
+        var deleteAuthor = await adminClient.DeleteAsync("api/account/1");
+        Assert.Equal(HttpStatusCode.Conflict, deleteAuthor.StatusCode);
+        var problemAuthor = await deleteAuthor.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problemAuthor);
+        Assert.Equal((int)HttpStatusCode.Conflict, problemAuthor.Status);
+        Assert.Contains("CreatedBy", problemAuthor.Detail ?? string.Empty);
+
+        // 2. Create an account and attach it as UpdatedByID to an article
+        var editorEmail = $"editor_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+        var createEditor = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "Editor Account",
+            AccountEmail = editorEmail,
+            AccountRole = 1,
+            AccountPassword = "Password123"
+        });
+        Assert.Equal(HttpStatusCode.Created, createEditor.StatusCode);
+        var editor = await createEditor.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(editor);
+
+        // Attach editor to an existing article in DB
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var article = await db.NewsArticles.FirstOrDefaultAsync();
+            if (article != null)
+            {
+                article.UpdatedByID = editor.AccountId;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // Deleting this editor account must be rejected with 409 Conflict
+        var deleteEditor = await adminClient.DeleteAsync($"api/account/{editor.AccountId}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteEditor.StatusCode);
+        var problemEditor = await deleteEditor.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problemEditor);
+        Assert.Equal((int)HttpStatusCode.Conflict, problemEditor.Status);
+        Assert.Contains("UpdatedBy", problemEditor.Detail ?? string.Empty);
+
+        // Reset the article UpdatedByID
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var article = await db.NewsArticles.FirstOrDefaultAsync(a => a.UpdatedByID == editor.AccountId);
+            if (article != null)
+            {
+                article.UpdatedByID = null;
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task FUN006_Criterion_03_Delete_EmptyAccount_Returns204NoContent_AndRemovesFromDb()
+    {
+        var adminClient = CreateClientForRole("Admin");
+        var emptyEmail = $"empty_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+
+        // Create an unreferenced account
+        var create = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "Empty Account",
+            AccountEmail = emptyEmail,
+            AccountRole = 2,
+            AccountPassword = "Password123"
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(created);
+
+        // Delete the empty account
+        var deleteResponse = await adminClient.DeleteAsync($"api/account/{created.AccountId}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        // Verify it is gone via API
+        var getResponse = await adminClient.GetAsync($"api/account/{created.AccountId}");
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+
+        // Verify it is gone via DB
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+        var inDb = await db.SystemAccounts.FindAsync(created.AccountId);
+        Assert.Null(inDb);
+    }
+
+    [Fact]
+    public async Task FUN006_Criterion_04_Delete_BlockedAccount_DoesNotCascade_ArticlesRemainIntact()
+    {
+        var adminClient = CreateClientForRole("Admin");
+
+        int articleCountBefore;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            articleCountBefore = await db.NewsArticles.CountAsync();
+            Assert.True(articleCountBefore > 0, "Pre-condition: database must have news articles.");
+        }
+
+        // Attempt to delete account 1 (author of articles)
+        var deleteAttempt = await adminClient.DeleteAsync("api/account/1");
+        Assert.Equal(HttpStatusCode.Conflict, deleteAttempt.StatusCode);
+
+        // Verify NO cascade occurred: article count must remain exactly the same
+        int articleCountAfter;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            articleCountAfter = await db.NewsArticles.CountAsync();
+            var account1 = await db.SystemAccounts.FindAsync((short)1);
+            Assert.NotNull(account1);
+        }
+
+        Assert.Equal(articleCountBefore, articleCountAfter);
+    }
+
+    [Fact]
+    public async Task FUN006_Criterion_05_StaleOrMissingId_Returns404NotFound()
+    {
+        var adminClient = CreateClientForRole("Admin");
+        const short nonExistentId = 29999;
+
+        // 1. PUT non-existent ID
+        var putResponse = await adminClient.PutAsJsonAsync($"api/account/{nonExistentId}", new UpdateAccountRequestDto
+        {
+            AccountName = "Ghost Account",
+            AccountEmail = "ghost@funews.edu.vn",
+            AccountRole = 1
+        });
+        Assert.Equal(HttpStatusCode.NotFound, putResponse.StatusCode);
+        var putProblem = await putResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(putProblem);
+        Assert.Equal((int)HttpStatusCode.NotFound, putProblem.Status);
+
+        // 2. DELETE non-existent ID
+        var deleteResponse = await adminClient.DeleteAsync($"api/account/{nonExistentId}");
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+        var deleteProblem = await deleteResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(deleteProblem);
+        Assert.Equal((int)HttpStatusCode.NotFound, deleteProblem.Status);
+    }
+
+    [Fact]
+    public async Task FUN006_Criterion_06_UpdateMetadata_PreservesPassword_AndDoesNotOverwrite()
+    {
+        var adminClient = CreateClientForRole("Admin");
+        var testEmail = $"passprotect_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+        const string originalPlainPassword = "MySuperSecretPass!123";
+
+        // Create account with known password
+        var create = await adminClient.PostAsJsonAsync("api/account", new CreateAccountRequestDto
+        {
+            AccountName = "Pass User Original",
+            AccountEmail = testEmail,
+            AccountRole = 1,
+            AccountPassword = originalPlainPassword
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<AccountDto>();
+        Assert.NotNull(created);
+
+        // Fetch stored password hash directly from DB before update
+        string initialHash;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var acc = await db.SystemAccounts.FindAsync(created.AccountId);
+            Assert.NotNull(acc);
+            initialHash = acc.AccountPassword!;
+            Assert.NotNull(initialHash);
+            Assert.True(_passwordHasher.VerifyPassword(originalPlainPassword, initialHash));
+        }
+
+        // Update metadata (name, email, role)
+        var updatedEmail = $"passprotect_updated_{Guid.NewGuid().ToString("N")[..8]}@funews.edu.vn";
+        var updateResponse = await adminClient.PutAsJsonAsync($"api/account/{created.AccountId}", new UpdateAccountRequestDto
+        {
+            AccountName = "Pass User Renamed",
+            AccountEmail = updatedEmail,
+            AccountRole = 2
+        });
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        // Verify in DB: password hash is preserved bit-for-bit, not null, not blank, not overwritten
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var acc = await db.SystemAccounts.FindAsync(created.AccountId);
+            Assert.NotNull(acc);
+            Assert.Equal("Pass User Renamed", acc.AccountName);
+            Assert.Equal(updatedEmail, acc.AccountEmail);
+            Assert.Equal(2, acc.AccountRole);
+            Assert.Equal(initialHash, acc.AccountPassword);
+            Assert.True(_passwordHasher.VerifyPassword(originalPlainPassword, acc.AccountPassword!));
+        }
+
+        // Verify login with original credentials still succeeds
+        var loginResponse = await adminClient.PostAsJsonAsync("api/auth/login", new LoginRequestDto
+        {
+            Email = updatedEmail,
+            Password = originalPlainPassword
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+    }
 }

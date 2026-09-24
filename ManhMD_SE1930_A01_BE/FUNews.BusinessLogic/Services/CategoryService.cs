@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Helpers;
 using FUNews.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,30 +18,12 @@ public class CategoryService : ICategoryService
     {
         return _categoryRepository.GetQueryable()
             .AsNoTracking()
-            .Select(c => new CategoryDto
-            {
-                CategoryId = c.CategoryID,
-                CategoryName = c.CategoryName,
-                CategoryDescription = c.CategoryDescription,
-                ParentCategoryId = c.ParentCategoryID,
-                ParentCategoryName = c.ParentCategory != null ? c.ParentCategory.CategoryName : null,
-                IsActive = c.IsActive
-            });
+            .Select(CategoryMappingHelper.ProjectToDto);
     }
 
     public async Task<CategoryDto?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         var category = await _categoryRepository.GetByIdWithParentAndChildrenAsync(id, cancellationToken);
-        if (category == null) return null;
-
-        return new CategoryDto
-        {
-            CategoryId = category.CategoryID,
-            CategoryName = category.CategoryName,
-            CategoryDescription = category.CategoryDescription,
-            ParentCategoryId = category.ParentCategoryID,
-            ParentCategoryName = category.ParentCategory?.CategoryName,
-            IsActive = category.IsActive
-        };
+        return category != null ? CategoryMappingHelper.ToDto(category) : null;
     }
 }

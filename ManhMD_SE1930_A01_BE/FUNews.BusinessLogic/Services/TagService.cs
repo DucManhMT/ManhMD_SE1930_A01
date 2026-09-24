@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Helpers;
 using FUNews.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,24 +18,12 @@ public class TagService : ITagService
     {
         return _tagRepository.GetQueryable()
             .AsNoTracking()
-            .Select(t => new TagDto
-            {
-                TagId = t.TagID,
-                TagName = t.TagName,
-                Note = t.Note
-            });
+            .Select(TagMappingHelper.ProjectToDto);
     }
 
     public async Task<TagDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var tag = await _tagRepository.GetByIdAsync(id, cancellationToken);
-        if (tag == null) return null;
-
-        return new TagDto
-        {
-            TagId = tag.TagID,
-            TagName = tag.TagName,
-            Note = tag.Note
-        };
+        return tag != null ? TagMappingHelper.ToDto(tag) : null;
     }
 }
