@@ -4,6 +4,7 @@ namespace FUNews.DataAccess.Repositories;
 
 public interface ISystemAccountRepository
 {
+    IQueryable<SystemAccount> GetQueryable();
     Task<SystemAccount?> GetByIdAsync(short id, CancellationToken cancellationToken = default);
     Task<SystemAccount?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<List<SystemAccount>> GetAllAsync(CancellationToken cancellationToken = default);

@@ -12,6 +12,11 @@ public class SystemAccountRepository : ISystemAccountRepository
         _accountDao = accountDao ?? throw new ArgumentNullException(nameof(accountDao));
     }
 
+    public IQueryable<SystemAccount> GetQueryable()
+    {
+        return _accountDao.GetQueryable();
+    }
+
     public Task<SystemAccount?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         return _accountDao.GetByIdAsync(id, cancellationToken);

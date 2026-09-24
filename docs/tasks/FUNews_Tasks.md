@@ -12,7 +12,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 |---|---|---|---|
 | FUN-001 | Khởi tạo hai solution | Không | DONE |
 | FUN-002 | Database và tầng truy cập | 001 | DONE |
-| FUN-003 | HTTP contract và OData nền tảng | 002 | TODO |
+| FUN-003 | HTTP contract và OData nền tảng | 002 | DONE |
 | FUN-004 | Đăng nhập và shell theo role | 003 | TODO |
 | FUN-005 | Danh sách và thêm tài khoản | 004 | TODO |
 | FUN-006 | Sửa và xóa tài khoản | 005 | TODO |
@@ -119,7 +119,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-003 — HTTP contract và OData nền tảng
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 002
 - Actor: Developer
 - Điểm vào/phạm vi file: API middleware/DTO/query; FE typed API clients
@@ -135,10 +135,39 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend DataAccess:
+    - `DAOs/CategoryDAO.cs`, `DAOs/TagDAO.cs`, `DAOs/SystemAccountDAO.cs`: Bổ sung `GetQueryable()`.
+    - `Repositories/ICategoryRepository.cs` & `CategoryRepository.cs`, `Repositories/ITagRepository.cs` & `TagRepository.cs`, `Repositories/ISystemAccountRepository.cs` & `SystemAccountRepository.cs`: Bổ sung `GetQueryable()`.
+  - Backend BusinessLogic:
+    - Exceptions: `NotFoundException.cs`, `ValidationException.cs`, `ConflictException.cs`, `ForbiddenException.cs`, `UnauthorizedException.cs`.
+    - DTOs: `CategoryDto.cs`, `TagDto.cs`, `NewsArticleDto.cs`, `NewsArticleListDto.cs`, `AccountDto.cs` (an toàn, không chứa trường password hay hash), `ODataResponse.cs` (envelope `@odata.count` và `value`), `ApiErrorResponse.cs`.
+    - Services: `ICategoryService.cs` / `CategoryService.cs`, `ITagService.cs` / `TagService.cs`, `INewsArticleService.cs` / `NewsArticleService.cs`, `IAccountService.cs` / `AccountService.cs`.
+    - Extensions: `BusinessLogicServiceCollectionExtensions.cs` đăng ký các Scoped application services.
+  - Backend API:
+    - Middleware: `Middleware/ExceptionHandlingMiddleware.cs` chuẩn hóa RFC 7807 ProblemDetails / ValidationProblemDetails, correlation traceId, ẩn SQL/stack trace khi gặp lỗi bất ngờ.
+    - OData: `OData/ODataModelBuilder.cs` (EDM model với lowerCamelCase), `OData/ODataQueryHelper.cs` (thực thi OData validation MaxTop 100, chặn expand, phân trang và tính `@odata.count`).
+    - Controllers: `CategoryController.cs`, `TagController.cs`, `NewsController.cs`, `AccountController.cs` (kế thừa ControllerBase, không gọi DbContext, chỉ inject Scoped Services).
+    - `Program.cs`: Cấu hình OData, JSON camelCase, EDM model middleware, ExceptionHandlingMiddleware, và `public partial class Program { }`.
+  - Frontend:
+    - DataAccess: `FUNews.Client.DataAccess.csproj` (bổ sung Microsoft.Extensions.Http 8.0.1), `Models/ODataEnvelope.cs`, `Models/CategoryApiModel.cs`, `Models/TagApiModel.cs`, `Models/NewsArticleApiModel.cs`, `Models/AccountApiModel.cs`, `Models/ApiProblemDetails.cs`, `Exceptions/FUNewsApiException.cs`, `Clients/IFUNewsApiClient.cs` & `Clients/FUNewsApiClient.cs`, `Extensions/ClientDataAccessServiceCollectionExtensions.cs`.
+    - BusinessLogic: `FUNews.Client.BusinessLogic.csproj` (Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2), `Services/ICategoryClientService.cs` & `CategoryClientService.cs`, `Services/INewsClientService.cs` & `NewsClientService.cs`, `Services/ITagClientService.cs` & `TagClientService.cs`, `Services/IAccountClientService.cs` & `AccountClientService.cs`, `Extensions/ClientBusinessLogicServiceCollectionExtensions.cs`.
+    - Presentation: `Program.cs` đăng ký Client DataAccess & BusinessLogic; `Pages/Index.cshtml.cs` và `Pages/Index.cshtml` kết nối đọc API thật và hiển thị chuyên mục nổi bật.
+  - Tests:
+    - `tests/FUNews.Tests/FUNews.Tests.csproj` (bổ sung Microsoft.AspNetCore.Mvc.Testing 8.0.11 và reference sang Client.DataAccess).
+    - `tests/FUNews.Tests/HttpContractAndODataTests.cs`: 11 tests kiểm thử toàn diện toàn bộ 5 acceptance criteria (kiểm tra DTO/JSON không password, OData filter/orderby/top/skip/count, chặn expand/invalid properties/password filter/top 100+, typed API client đọc API thật, và kiến trúc Controller không gọi DbContext).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln` -> Build succeeded (0 Warning, 0 Error).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln` -> Build succeeded (0 Warning, 0 Error).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj` -> Passed! (Passed: 26, Failed: 0, Skipped: 0).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj` -> Passed! (Passed: 2, Failed: 0, Skipped: 0).
+- UI/SQL/API evidence:
+  - Backend API OData endpoints `/api/category`, `/api/tag`, `/api/news`, `/api/account` hoạt động chuẩn RFC 7807 ProblemDetails và envelope OData `{"@odata.count": ..., "value": [...]}`.
+  - Account API và Account DTO hoàn toàn không lộ password/hash, truy vấn `$filter` trên mật khẩu bị chặn với 400 Bad Request.
+  - `$expand` bị chặn chặt chẽ với 400 Bad Request.
+  - Frontend Typed API Client kết nối thành công tới Backend API TestServer và đọc dữ liệu thực từ SQL Server database.
+  - Kiểm tra kiến trúc: 100% Controllers tuân thủ nghiêm ngặt, không chứa tham chiếu tới `DbContext` hay `FUNewsDbContext`.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-004 — Đăng nhập và shell theo role
 

@@ -13,6 +13,11 @@ public class CategoryDAO
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    public IQueryable<Category> GetQueryable()
+    {
+        return _context.Categories.AsQueryable();
+    }
+
     public async Task<Category?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         return await _context.Categories

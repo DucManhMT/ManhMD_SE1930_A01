@@ -1,0 +1,24 @@
+using FUNews.Client.DataAccess.Clients;
+using FUNews.Client.DataAccess.Models;
+
+namespace FUNews.Client.BusinessLogic.Services;
+
+public class NewsClientService : INewsClientService
+{
+    private readonly IFUNewsApiClient _apiClient;
+
+    public NewsClientService(IFUNewsApiClient apiClient)
+    {
+        _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+    }
+
+    public Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetNewsArticlesAsync(odataQuery, cancellationToken);
+    }
+
+    public Task<NewsArticleApiModel?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetNewsArticleByIdAsync(id, cancellationToken);
+    }
+}

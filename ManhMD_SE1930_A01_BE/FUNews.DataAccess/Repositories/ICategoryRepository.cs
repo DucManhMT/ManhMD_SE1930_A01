@@ -4,6 +4,7 @@ namespace FUNews.DataAccess.Repositories;
 
 public interface ICategoryRepository
 {
+    IQueryable<Category> GetQueryable();
     Task<Category?> GetByIdAsync(short id, CancellationToken cancellationToken = default);
     Task<Category?> GetByIdWithParentAndChildrenAsync(short id, CancellationToken cancellationToken = default);
     Task<List<Category>> GetAllAsync(CancellationToken cancellationToken = default);

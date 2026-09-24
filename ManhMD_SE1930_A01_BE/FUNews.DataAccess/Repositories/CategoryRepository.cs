@@ -12,6 +12,11 @@ public class CategoryRepository : ICategoryRepository
         _categoryDao = categoryDao ?? throw new ArgumentNullException(nameof(categoryDao));
     }
 
+    public IQueryable<Category> GetQueryable()
+    {
+        return _categoryDao.GetQueryable();
+    }
+
     public Task<Category?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         return _categoryDao.GetByIdAsync(id, cancellationToken);

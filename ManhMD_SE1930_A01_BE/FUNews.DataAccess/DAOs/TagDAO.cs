@@ -13,6 +13,11 @@ public class TagDAO
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    public IQueryable<Tag> GetQueryable()
+    {
+        return _context.Tags.AsQueryable();
+    }
+
     public async Task<Tag?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Tags

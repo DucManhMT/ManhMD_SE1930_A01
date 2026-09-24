@@ -17,3 +17,38 @@
         </div>
     </div>
 </div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        <div>@Model.ErrorMessage</div>
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="h5 fw-bold text-dark mb-3">Chuyên mục tin tức nổi bật</h2>
+        @if (Model.ActiveCategories.Any())
+        {
+            <div class="row g-3">
+                @foreach (var cat in Model.ActiveCategories)
+                {
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card card-fu h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-fu-primary fw-bold">@cat.CategoryName</h5>
+                                <p class="card-text text-muted small">@cat.CategoryDescription</p>
+                                <a href="/search?category=@cat.CategoryId" class="btn btn-sm btn-outline-fu-primary">Xem bài viết</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <p class="text-muted">Đang cập nhật chuyên mục...</p>
+        }
+    </div>
+</div>

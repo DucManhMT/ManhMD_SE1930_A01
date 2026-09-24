@@ -19,6 +19,12 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<JwtOptions>>().Value);
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppOptions>>().Value);
 
+        // Register Scoped Application Services
+        services.AddScoped<Services.ICategoryService, Services.CategoryService>();
+        services.AddScoped<Services.ITagService, Services.TagService>();
+        services.AddScoped<Services.INewsArticleService, Services.NewsArticleService>();
+        services.AddScoped<Services.IAccountService, Services.AccountService>();
+
         return services;
     }
 }

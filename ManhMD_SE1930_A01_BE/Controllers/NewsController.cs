@@ -1,0 +1,51 @@
+using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Services;
+using ManhMD_SE1930_A01_BE.OData;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
+
+namespace ManhMD_SE1930_A01_BE.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class NewsController : ControllerBase
+{
+    private readonly INewsArticleService _newsService;
+
+    public NewsController(INewsArticleService newsService)
+    {
+        _newsService = newsService ?? throw new ArgumentNullException(nameof(newsService));
+    }
+
+    [HttpGet]
+    public ActionResult<ODataResponse<NewsArticleDto>> Get(ODataQueryOptions<NewsArticleDto> queryOptions, [FromQuery] bool? activeOnly)
+    {
+        // Enforce role-based visibility: Public/Lecturer can only ever see Active articles
+        var isPrivileged = User.Identity?.IsAuthenticated == true && (User.IsInRole("Staff") || User.IsInRole("Admin"));
+        var filterActive = !isPrivileged || (activeOnly == true);
+
+        var query = _newsService.GetQueryable(filterActive);
+        var result = ODataQueryHelper.ApplyOData(query, queryOptions);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<NewsArticleDto>> GetById(string id, CancellationToken cancellationToken)
+    {
+        var isPrivileged = User.Identity?.IsAuthenticated == true && (User.IsInRole("Staff") || User.IsInRole("Admin"));
+        var filterActive = !isPrivileged;
+
+        var article = await _newsService.GetByIdAsync(id, filterActive, cancellationToken);
+        if (article == null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Không tìm thấy bài viết",
+                Detail = $"Bài viết với mã {id} không tồn tại hoặc bạn không có quyền xem."
+            });
+        }
+
+        return Ok(article);
+    }
+}

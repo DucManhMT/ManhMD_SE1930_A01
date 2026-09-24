@@ -4,6 +4,7 @@ namespace FUNews.DataAccess.Repositories;
 
 public interface ITagRepository
 {
+    IQueryable<Tag> GetQueryable();
     Task<Tag?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<List<Tag>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
     Task<List<Tag>> GetAllAsync(CancellationToken cancellationToken = default);

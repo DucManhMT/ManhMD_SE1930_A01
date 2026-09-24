@@ -13,6 +13,11 @@ public class SystemAccountDAO
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    public IQueryable<SystemAccount> GetQueryable()
+    {
+        return _context.SystemAccounts.AsQueryable();
+    }
+
     public async Task<SystemAccount?> GetByIdAsync(short id, CancellationToken cancellationToken = default)
     {
         return await _context.SystemAccounts

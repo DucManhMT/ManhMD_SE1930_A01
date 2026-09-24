@@ -12,6 +12,11 @@ public class TagRepository : ITagRepository
         _tagDao = tagDao ?? throw new ArgumentNullException(nameof(tagDao));
     }
 
+    public IQueryable<Tag> GetQueryable()
+    {
+        return _tagDao.GetQueryable();
+    }
+
     public Task<Tag?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return _tagDao.GetByIdAsync(id, cancellationToken);

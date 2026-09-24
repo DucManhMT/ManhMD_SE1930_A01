@@ -1,7 +1,15 @@
+using FUNews.Client.BusinessLogic.Extensions;
+using FUNews.Client.DataAccess.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// Register typed HTTP client and client business logic services
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7001";
+builder.Services.AddFUNewsClientDataAccess(apiBaseUrl);
+builder.Services.AddFUNewsClientBusinessLogic();
 
 var app = builder.Build();
 
