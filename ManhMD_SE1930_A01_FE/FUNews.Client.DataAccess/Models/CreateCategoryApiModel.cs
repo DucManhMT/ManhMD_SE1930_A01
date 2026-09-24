@@ -2,11 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace FUNews.Client.DataAccess.Models;
 
-public class CategoryApiModel
+public class CreateCategoryApiModel
 {
-    [JsonPropertyName("categoryId")]
-    public short CategoryId { get; set; }
-
     [JsonPropertyName("categoryName")]
     public string CategoryName { get; set; } = string.Empty;
 
@@ -16,12 +13,6 @@ public class CategoryApiModel
     [JsonPropertyName("parentCategoryId")]
     public short? ParentCategoryId { get; set; }
 
-    [JsonPropertyName("parentCategoryName")]
-    public string? ParentCategoryName { get; set; }
-
     [JsonPropertyName("isActive")]
-    public bool? IsActive { get; set; }
-
-    [JsonPropertyName("articleCount")]
-    public int ArticleCount { get; set; }
+    public bool? IsActive { get; set; } = true;
 }

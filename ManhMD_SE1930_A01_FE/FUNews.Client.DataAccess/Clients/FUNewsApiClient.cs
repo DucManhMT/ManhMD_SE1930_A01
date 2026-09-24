@@ -29,6 +29,20 @@ public class FUNewsApiClient : IFUNewsApiClient
         return GetSingleAsync<CategoryApiModel>($"api/category/{id}", cancellationToken);
     }
 
+    public async Task<CategoryApiModel> CreateCategoryAsync(CreateCategoryApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/category", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<CategoryApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
     public Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/tag" : $"api/tag{FormatQuery(odataQuery)}";
@@ -93,6 +107,37 @@ public class FUNewsApiClient : IFUNewsApiClient
     public async Task DeleteAccountAsync(short id, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.DeleteAsync($"api/account/{id}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+    }
+
+    public async Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await GetSingleAsync<AccountApiModel>("api/account/me", cancellationToken);
+        return result ?? throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, "Không tìm thấy thông tin hồ sơ tài khoản.");
+    }
+
+    public async Task<AccountApiModel> UpdateProfileAsync(UpdateProfileApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PutAsJsonAsync("api/account/me", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<AccountApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
+    public async Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/account/me/change-password", request, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response, cancellationToken);

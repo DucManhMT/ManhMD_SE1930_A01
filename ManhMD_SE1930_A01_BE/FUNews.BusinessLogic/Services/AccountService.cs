@@ -150,4 +150,91 @@ public class AccountService : IAccountService
             throw new NotFoundException($"Tài khoản với mã {id} không tồn tại.");
         }
     }
+
+    public async Task<AccountDto> GetProfileAsync(short accountId, CancellationToken cancellationToken = default)
+    {
+        var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+        if (account == null)
+        {
+            throw new NotFoundException($"Không tìm thấy tài khoản với mã {accountId}.");
+        }
+
+        return AccountMappingHelper.ToDto(account);
+    }
+
+    public async Task<AccountDto> UpdateProfileAsync(short accountId, UpdateProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var trimmedName = AccountValidationHelper.ValidateAndTrimName(request.AccountName);
+        var trimmedEmail = AccountValidationHelper.ValidateAndTrimEmail(request.AccountEmail);
+
+        var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+        if (account == null)
+        {
+            throw new NotFoundException($"Không tìm thấy tài khoản với mã {accountId}.");
+        }
+
+        var isUnique = await _accountRepository.IsEmailUniqueAsync(trimmedEmail, accountId, cancellationToken);
+        if (!isUnique)
+        {
+            throw new ValidationException(nameof(request.AccountEmail), "Email này đã được sử dụng bởi một tài khoản khác trong hệ thống.");
+        }
+
+        account.AccountName = trimmedName;
+        account.AccountEmail = trimmedEmail;
+        // Bảo đảm Acceptance Criteria: AccountRole và AccountPassword không bị thay đổi
+
+        try
+        {
+            var updated = await _accountRepository.UpdateAsync(account, cancellationToken);
+            return AccountMappingHelper.ToDto(updated);
+        }
+        catch (DbUpdateException ex)
+        {
+            AccountValidationHelper.HandleDbUpdateException(ex);
+            throw;
+        }
+    }
+
+    public async Task ChangePasswordAsync(short accountId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+        {
+            throw new ValidationException(nameof(request.CurrentPassword), "Mật khẩu hiện tại là bắt buộc.");
+        }
+
+        AccountValidationHelper.ValidatePassword(request.NewPassword);
+
+        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            throw new ValidationException(nameof(request.ConfirmPassword), "Xác nhận mật khẩu không khớp với mật khẩu mới.");
+        }
+
+        var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+        if (account == null)
+        {
+            throw new NotFoundException($"Không tìm thấy tài khoản với mã {accountId}.");
+        }
+
+        if (string.IsNullOrEmpty(account.AccountPassword) ||
+            !_passwordHasher.VerifyPassword(request.CurrentPassword, account.AccountPassword))
+        {
+            throw new ValidationException(nameof(request.CurrentPassword), "Mật khẩu hiện tại không chính xác.");
+        }
+
+        account.AccountPassword = _passwordHasher.HashPassword(request.NewPassword);
+
+        try
+        {
+            await _accountRepository.UpdateAsync(account, cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            AccountValidationHelper.HandleDbUpdateException(ex);
+            throw;
+        }
+    }
 }

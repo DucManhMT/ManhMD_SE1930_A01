@@ -8,4 +8,5 @@ public class CategoryDto
     public short? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
     public bool? IsActive { get; set; }
+    public int ArticleCount { get; set; }
 }

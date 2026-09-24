@@ -233,9 +233,11 @@ public class AuthenticationAndRoleTests : IClassFixture<WebApplicationFactory<Pr
         var staffClient = _factory.CreateClient();
         staffClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginResult.Token);
 
-        // 2. Staff gọi POST /api/category -> Được ủy quyền (vượt qua auth check, trả 501 Not Implemented thay vì 401 hoặc 403)
+        // 2. Staff gọi POST /api/category -> Được ủy quyền (vượt qua auth check, không bị 401 hoặc 403)
         var categoryPost = await staffClient.PostAsJsonAsync("api/category", new { });
-        Assert.Equal(HttpStatusCode.NotImplemented, categoryPost.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Unauthorized, categoryPost.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, categoryPost.StatusCode);
+        Assert.True(categoryPost.StatusCode == HttpStatusCode.BadRequest || categoryPost.StatusCode == HttpStatusCode.NotImplemented);
 
         // 3. Staff gọi POST /api/tag -> Trả 501 (vượt qua auth check)
         var tagPost = await staffClient.PostAsJsonAsync("api/tag", new { });

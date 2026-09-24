@@ -29,6 +29,7 @@ public class CategoryDAO
         return await _context.Categories
             .Include(c => c.ParentCategory)
             .Include(c => c.SubCategories)
+            .Include(c => c.NewsArticles)
             .FirstOrDefaultAsync(c => c.CategoryID == id, cancellationToken);
     }
 

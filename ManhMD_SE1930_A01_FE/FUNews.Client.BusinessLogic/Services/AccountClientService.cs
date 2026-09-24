@@ -36,4 +36,19 @@ public class AccountClientService : IAccountClientService
     {
         return _apiClient.DeleteAccountAsync(id, cancellationToken);
     }
+
+    public Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetProfileAsync(cancellationToken);
+    }
+
+    public Task<AccountApiModel> UpdateProfileAsync(UpdateProfileApiModel request, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.UpdateProfileAsync(request, cancellationToken);
+    }
+
+    public Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.ChangePasswordAsync(request, cancellationToken);
+    }
 }

@@ -160,6 +160,39 @@ public class AccountsRazorPageTests
             AccountsList.Remove(existing);
             return Task.CompletedTask;
         }
+
+        public Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default)
+        {
+            var acc = AccountsList.FirstOrDefault() ?? new AccountApiModel
+            {
+                AccountId = 1,
+                AccountName = "Staff User",
+                AccountEmail = "staff@funews.org",
+                AccountRole = 1,
+                RoleName = "Staff"
+            };
+            return Task.FromResult(acc);
+        }
+
+        public Task<AccountApiModel> UpdateProfileAsync(UpdateProfileApiModel request, CancellationToken cancellationToken = default)
+        {
+            var acc = AccountsList.FirstOrDefault() ?? new AccountApiModel
+            {
+                AccountId = 1,
+                AccountName = request.AccountName,
+                AccountEmail = request.AccountEmail,
+                AccountRole = 1,
+                RoleName = "Staff"
+            };
+            acc.AccountName = request.AccountName;
+            acc.AccountEmail = request.AccountEmail;
+            return Task.FromResult(acc);
+        }
+
+        public Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private static (AccountsModel pageModel, FakeAccountClientService fakeService) CreateAccountsModel()

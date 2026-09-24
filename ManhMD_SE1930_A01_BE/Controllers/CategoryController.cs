@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Models;
 using FUNews.BusinessLogic.Services;
 using ManhMD_SE1930_A01_BE.OData;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,8 @@ public class CategoryController : ControllerBase
     [AllowAnonymous]
     public ActionResult<ODataResponse<CategoryDto>> Get(ODataQueryOptions<CategoryDto> queryOptions)
     {
-        var result = ODataQueryHelper.ApplyOData(_categoryService.GetQueryable(), queryOptions);
+        bool isStaff = User.IsInRole("Staff");
+        var result = ODataQueryHelper.ApplyOData(_categoryService.GetQueryable(isStaff), queryOptions);
         return Ok(result);
     }
 
@@ -30,7 +32,8 @@ public class CategoryController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<CategoryDto>> GetById(short id, CancellationToken cancellationToken)
     {
-        var category = await _categoryService.GetByIdAsync(id, cancellationToken);
+        bool isStaff = User.IsInRole("Staff");
+        var category = await _categoryService.GetByIdAsync(id, isStaff, cancellationToken);
         if (category == null)
         {
             return NotFound(new ProblemDetails
@@ -46,14 +49,15 @@ public class CategoryController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Staff")]
-    public IActionResult Create()
+    public async Task<ActionResult<CategoryDto>> Create([FromBody] CreateCategoryRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (!ModelState.IsValid)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng tạo danh mục thuộc phạm vi task FUN-008."
-        });
+            return ValidationProblem(ModelState);
+        }
+
+        var created = await _categoryService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.CategoryId }, created);
     }
 
     [HttpPut("{id:int}")]

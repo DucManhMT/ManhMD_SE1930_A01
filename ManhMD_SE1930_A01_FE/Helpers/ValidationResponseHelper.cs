@@ -18,6 +18,12 @@ public static class ValidationResponseHelper
             return "AccountRole";
         if (clean.Equals("AccountPassword", StringComparison.OrdinalIgnoreCase) || clean.Equals("password", StringComparison.OrdinalIgnoreCase))
             return "AccountPassword";
+        if (clean.Equals("CategoryName", StringComparison.OrdinalIgnoreCase))
+            return "CategoryName";
+        if (clean.Equals("CategoryDescription", StringComparison.OrdinalIgnoreCase) || clean.Equals("CategoryDesciption", StringComparison.OrdinalIgnoreCase))
+            return "CategoryDescription";
+        if (clean.Equals("ParentCategoryId", StringComparison.OrdinalIgnoreCase) || clean.Equals("ParentCategoryID", StringComparison.OrdinalIgnoreCase))
+            return "ParentCategoryId";
 
         return clean;
     }

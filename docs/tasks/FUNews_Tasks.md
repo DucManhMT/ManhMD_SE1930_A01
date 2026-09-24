@@ -16,8 +16,8 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-004 | Đăng nhập và shell theo role | 003 | DONE |
 | FUN-005 | Danh sách và thêm tài khoản | 004 | DONE |
 | FUN-006 | Sửa và xóa tài khoản | 005 | DONE |
-| FUN-007 | Hồ sơ và đổi mật khẩu | 004 | TODO |
-| FUN-008 | Danh sách và thêm danh mục | 004 | TODO |
+| FUN-007 | Hồ sơ và đổi mật khẩu | 004 | DONE |
+| FUN-008 | Danh sách và thêm danh mục | 004 | DONE |
 | FUN-009 | Sửa trạng thái và xóa danh mục | 008 | TODO |
 | FUN-010 | Quản lý tag | 004 | TODO |
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | TODO |
@@ -302,7 +302,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-007 — Hồ sơ và đổi mật khẩu
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 004
 - Actor: Staff
 - Điểm vào/phạm vi file: /staff/profile; /api/account/me
@@ -318,14 +318,30 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Models & DTOs: [UpdateProfileRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/UpdateProfileRequestDto.cs), [ChangePasswordRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/ChangePasswordRequestDto.cs).
+  - BE Services & Controllers: [IAccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/IAccountService.cs), [AccountService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/AccountService.cs), [AccountController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/AccountController.cs).
+  - FE DataAccess: [UpdateProfileApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/UpdateProfileApiModel.cs), [ChangePasswordApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/ChangePasswordApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic: [IAccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/IAccountClientService.cs), [AccountClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/AccountClientService.cs).
+  - FE Presentation (Razor Page & UI): [Profile.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Profile.cshtml), [Profile.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Profile.cshtml.cs).
+  - Tests: [ProfileAndChangePasswordTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/ProfileAndChangePasswordTests.cs), [ProfileRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/ProfileRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 58/58 Passed (100%) — gồm 5 tests acceptance criteria FUN-007.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 43/43 Passed (100%) — gồm 7 tests handler/client FUN-007.
+- UI/SQL/API evidence:
+  - Kiểm tra 5/5 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Chỉ sửa bản thân: Claims Principal `accountId`/`NameIdentifier` trong JWT Token được dùng để xác định danh tính; Anonymous trả về 401 Unauthorized; Admin không có tài khoản SystemAccount nên trả về 403 Forbidden; Staff chỉ cập nhật được profile của chính mình qua `/api/account/me`, truyền ID khác trong query string/body bị bỏ qua hoàn toàn.
+    2. Payload role/ID bị bỏ hoặc từ chối: `UpdateProfileRequestDto` chỉ gồm `AccountName` và `AccountEmail`; không có ID hoặc Role; Service bảo toàn `AccountRole` và `AccountID` trong database; kiểm tra trùng email với tài khoản khác trả về 400 Bad Request kèm field error `AccountEmail`.
+    3. CurrentPassword sai không đổi: Gọi `POST /api/account/me/change-password` với mật khẩu hiện tại sai trả về 400 Bad Request với field error `CurrentPassword` ("Mật khẩu hiện tại không chính xác."); mật khẩu hash trong CSDL giữ nguyên 100%.
+    4. Password mới hoạt động: Khi `CurrentPassword` hợp lệ, hash mới được cập nhật vào database bằng BCrypt; gọi `AuthService.LoginAsync` với mật khẩu mới thành công và nhận JWT Token; đăng nhập lại với mật khẩu cũ trả về 401 Unauthorized.
+    5. Lỗi giữ input thông tin nhưng không log mật khẩu: Modal AJAX trả về JSON lỗi và hiển thị inline feedback, form giữ nguyên dữ liệu đã nhập của người dùng để chỉnh sửa lại; PageModel và Logger tuyệt đối không log mật khẩu vào console hay log file.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-008 — Danh sách và thêm danh mục
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 004
 - Actor: Staff
 - Điểm vào/phạm vi file: /staff/categories; /api/category
@@ -342,10 +358,29 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Models & DTOs: [CategoryDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/DTOs/CategoryDto.cs), [CreateCategoryRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/CreateCategoryRequestDto.cs).
+  - BE Helpers & DAOs: [CategoryMappingHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/CategoryMappingHelper.cs), [CategoryDAO.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/DAOs/CategoryDAO.cs).
+  - BE Services & Controllers: [ICategoryService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/ICategoryService.cs), [CategoryService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/CategoryService.cs), [CategoryController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/CategoryController.cs).
+  - FE Models: [CategoryApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/CategoryApiModel.cs), [CreateCategoryApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/CreateCategoryApiModel.cs).
+  - FE DataAccess & Clients: [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE Helpers & Services: [ODataFilterHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Helpers/ODataFilterHelper.cs), [ValidationResponseHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Helpers/ValidationResponseHelper.cs), [ICategoryClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/ICategoryClientService.cs), [CategoryClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/CategoryClientService.cs).
+  - FE Presentation (Razor Page & UI): [Categories.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Categories.cshtml), [Categories.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Categories.cshtml.cs).
+  - Tests: [CategoryManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/CategoryManagementTests.cs), [CategoriesRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/CategoriesRazorPageTests.cs), [AuthenticationAndRoleTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/AuthenticationAndRoleTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 64/64 Passed (100%) — gồm 6 acceptance criteria tests cho FUN-008.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 49/49 Passed (100%) — gồm 6 page model tests cho FUN-008.
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Required/length đúng: `CategoryName` (Required, <=100), `CategoryDescription` (Required, <=250 map cột DB `CategoryDesciption`), `ParentCategoryId` (short? nullable), `IsActive` (bool). Vi phạm trả về 400 Bad Request kèm field errors.
+    2. Unique cùng parent kể cả NULL: Cùng `ParentCategoryId` (hoặc cả hai đều `null`) thì không được trùng `CategoryName` (case-insensitive); bắt lỗi tầng Service Validation và DB filtered unique indexes `UQ_Category_Name_ParentNotNull` / `UQ_Category_Name_ParentNull`.
+    3. Chặn cycle/self & Non-existent parent: Khi chỉ định danh mục cha, kiểm tra tồn tại trong DB trước khi tạo, nếu không tồn tại trả về 400 Bad Request ("Danh mục cha không tồn tại trong hệ thống.").
+    4. COUNT đúng: Staff thấy tổng số bài viết trong chuyên mục (`c.NewsArticles.Count()`).
+    5. Public metadata không lộ count Inactive: Khách Anonymous xem chuyên mục chỉ thấy số bài Active (`c.NewsArticles.Count(a => a.NewsStatus == true)`).
+    6. UI trạng thái đầy đủ: Razor Page `/staff/categories` với thanh tìm kiếm (tên, mô tả), bộ lọc trạng thái (Hoạt động, Tạm ẩn), badge số lượng bài viết, badge trạng thái Active/Inactive, modal AJAX tạo mới không reload trang kèm Toast và inline error highlighting. Phân quyền Staff-only qua `[Authorize(Roles = "Staff")]` ở FE và BE.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-009 — Sửa trạng thái và xóa danh mục
 

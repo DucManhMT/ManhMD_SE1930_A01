@@ -4,20 +4,622 @@
     ViewData["Title"] = "Hồ sơ cá nhân";
 }
 
-<div class="container fu-container-public">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+<div class="container fu-container-public py-4">
+    <!-- Breadcrumb & Tiêu đề trang -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Staff/News" class="text-decoration-none">Quản lý tin tức</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Hồ sơ cá nhân</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 border-bottom gap-2">
         <div>
-            <h1 class="h3 fw-bold text-dark mb-1">Hồ sơ cá nhân và Mật khẩu</h1>
-            <p class="text-muted small mb-0">Quản lý thông tin tài khoản và đổi mật khẩu</p>
+            <h1 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-person-badge-fill text-primary me-2"></i>Hồ sơ cá nhân & Bảo mật
+            </h1>
+            <p class="text-muted small mb-0">Xem và quản lý thông tin tài khoản, cập nhật hồ sơ và thay đổi mật khẩu đăng nhập</p>
         </div>
-        <span class="badge bg-primary fs-6 px-3 py-2">Staff Only</span>
+        <div>
+            <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm">
+                <i class="bi bi-shield-check me-1"></i>Nhân viên quản lý tin (Staff)
+            </span>
+        </div>
     </div>
 
-    <div class="card card-fu shadow-sm p-4 text-center my-4">
-        <div class="py-4">
-            <h2 class="h5 fw-bold text-primary mb-2">Chức năng Hồ sơ cá nhân</h2>
-            <p class="text-muted mb-3">Màn hình cập nhật thông tin và modal đổi mật khẩu đang được phát triển trong task <strong>[FUN-007]</strong>.</p>
-            <a asp-page="/Index" class="btn btn-outline-primary btn-sm">Quay về trang tin tức</a>
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Lỗi tải dữ liệu:</strong> @Model.ErrorMessage
+            </div>
+        </div>
+    }
+
+    <!-- Thẻ hiển thị thông tin hồ sơ -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title fw-bold text-dark mb-0 h6">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Thông tin tài khoản
+                    </h5>
+                    <span class="badge bg-light text-secondary border">Mã #<span id="displayAccountId">@(Model.Profile?.AccountId.ToString() ?? "--")</span></span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row mb-3 pb-3 border-bottom align-items-center">
+                        <div class="col-sm-4 text-muted small fw-semibold">
+                            <i class="bi bi-person me-1"></i>Họ và tên:
+                        </div>
+                        <div class="col-sm-8 fw-bold text-dark fs-6" id="displayAccountName">
+                            @(Model.Profile?.AccountName ?? "Chưa có thông tin")
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 pb-3 border-bottom align-items-center">
+                        <div class="col-sm-4 text-muted small fw-semibold">
+                            <i class="bi bi-envelope me-1"></i>Địa chỉ Email:
+                        </div>
+                        <div class="col-sm-8 text-primary font-monospace" id="displayAccountEmail">
+                            @(Model.Profile?.AccountEmail ?? "Chưa có thông tin")
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 pb-3 border-bottom align-items-center">
+                        <div class="col-sm-4 text-muted small fw-semibold">
+                            <i class="bi bi-shield-lock me-1"></i>Vai trò hệ thống:
+                        </div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-info text-dark px-2 py-1" id="displayRoleName">
+                                @(Model.Profile?.RoleName ?? "Staff")
+                            </span>
+                            <span class="text-muted small ms-2">(Quyền hạn được phân bổ theo chỉ định quản trị)</span>
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center">
+                        <div class="col-sm-4 text-muted small fw-semibold">
+                            <i class="bi bi-key me-1"></i>Mật khẩu:
+                        </div>
+                        <div class="col-sm-8 text-muted small">
+                            ••••••••••••
+                            <span class="ms-2 badge bg-light text-muted border">Được mã hóa an toàn</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light py-3 px-4 d-flex flex-wrap gap-2 justify-content-end">
+                    <button type="button" class="btn btn-outline-primary btn-sm px-3" id="btnOpenEditProfileModal">
+                        <i class="bi bi-pencil-square me-1"></i>Chỉnh sửa thông tin
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm px-3" id="btnOpenChangePasswordModal">
+                        <i class="bi bi-shield-lock-fill me-1"></i>Đổi mật khẩu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Thẻ hướng dẫn & an toàn bảo mật -->
+            <div class="card shadow-sm border-0 rounded-3 mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h5 class="card-title fw-bold text-dark mb-0 h6">
+                        <i class="bi bi-shield-shaded text-success me-2"></i>Quy tắc bảo mật
+                    </h5>
+                </div>
+                <div class="card-body p-4 small text-muted">
+                    <ul class="ps-3 mb-0">
+                        <li class="mb-2"><strong>Chỉ sửa bản thân:</strong> Bạn chỉ có quyền xem và cập nhật hồ sơ của chính tài khoản đang đăng nhập.</li>
+                        <li class="mb-2"><strong>Bảo toàn vai trò:</strong> Vai trò và mã định danh của bạn là cố định, không thể tự ý thay đổi.</li>
+                        <li class="mb-2"><strong>Mật khẩu tối thiểu:</strong> Mật khẩu mới bắt buộc có độ dài từ 6 đến 100 ký tự.</li>
+                        <li><strong>Kiểm tra mật khẩu cũ:</strong> Để bảo vệ tài khoản, bạn phải cung cấp chính xác mật khẩu hiện tại khi thực hiện thay đổi.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Liên kết nhanh đến các chức năng Staff -->
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h5 class="card-title fw-bold text-dark mb-0 h6">
+                        <i class="bi bi-link-45deg text-primary me-2"></i>Liên kết nhanh
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush small">
+                    <a asp-page="/Staff/News" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-4">
+                        <span><i class="bi bi-newspaper me-2 text-primary"></i>Quản lý bài viết</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-page="/Staff/MyNews" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-4">
+                        <span><i class="bi bi-clock-history me-2 text-info"></i>Bài viết của tôi</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-page="/Staff/Categories" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-4">
+                        <span><i class="bi bi-folder2 me-2 text-warning"></i>Quản lý danh mục</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-page="/Staff/Tags" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-4">
+                        <span><i class="bi bi-tags me-2 text-success"></i>Quản lý thẻ gắn (Tags)</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- ============================================================== -->
+<!-- 1. MODAL CHỈNH SỬA THÔNG TIN HỒ SƠ -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalEditProfile" tabindex="-1" aria-labelledby="modalEditProfileLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title h6 fw-bold mb-0" id="modalEditProfileLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa thông tin cá nhân
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng" id="btnCloseEditProfileModal"></button>
+            </div>
+            <form id="formEditProfile" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <!-- Alert thông báo lỗi tổng quan -->
+                    <div class="alert alert-danger d-none py-2 mb-3" id="editProfileAlert" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="editProfileAlertText"></span>
+                    </div>
+
+                    <!-- Ghi chú bảo toàn vai trò -->
+                    <div class="alert alert-info py-2 mb-3 small d-flex align-items-center">
+                        <i class="bi bi-shield-check me-2 fs-5 text-primary"></i>
+                        <span>Vai trò hệ thống và mã định danh của bạn được bảo vệ cố định; chỉ cập nhật họ tên và email.</span>
+                    </div>
+
+                    <!-- Họ và tên -->
+                    <div class="mb-3">
+                        <label for="editProfileName" class="form-label fw-semibold small">
+                            Họ và tên <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="editProfileName" name="accountName"
+                               value="@(Model.Profile?.AccountName ?? "")"
+                               placeholder="Nhập họ và tên đầy đủ" maxlength="100" required />
+                        <div class="invalid-feedback" id="errorEditProfileName">Họ và tên là bắt buộc và tối đa 100 ký tự.</div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="editProfileEmail" class="form-label fw-semibold small">
+                            Địa chỉ Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="editProfileEmail" name="accountEmail"
+                               value="@(Model.Profile?.AccountEmail ?? "")"
+                               placeholder="ví dụ: staff@funews.org" maxlength="100" required />
+                        <div class="invalid-feedback" id="errorEditProfileEmail">Vui lòng nhập định dạng email hợp lệ (tối đa 100 ký tự).</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 px-4">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal" id="btnCancelEditProfileModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitEditProfile">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerEditProfile" role="status" aria-hidden="true"></span>
+                        <span id="btnTextEditProfile">Lưu thông tin</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- 2. MODAL ĐỔI MẬT KHẨU -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalChangePassword" tabindex="-1" aria-labelledby="modalChangePasswordLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title h6 fw-bold mb-0" id="modalChangePasswordLabel">
+                    <i class="bi bi-shield-lock-fill text-warning me-2"></i>Đổi mật khẩu tài khoản
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng" id="btnCloseChangePasswordModal"></button>
+            </div>
+            <form id="formChangePassword" novalidate autocomplete="off">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <!-- Alert thông báo lỗi tổng quan -->
+                    <div class="alert alert-danger d-none py-2 mb-3" id="changePasswordAlert" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="changePasswordAlertText"></span>
+                    </div>
+
+                    <!-- Mật khẩu hiện tại -->
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label fw-semibold small">
+                            Mật khẩu hiện tại <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="currentPassword" name="currentPassword"
+                                   placeholder="Nhập mật khẩu hiện tại" required autocomplete="current-password" />
+                            <button class="btn btn-outline-secondary btn-toggle-pw" type="button" data-target="currentPassword" title="Hiển thị mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback d-block d-none" id="errorCurrentPassword">Mật khẩu hiện tại là bắt buộc.</div>
+                    </div>
+
+                    <!-- Mật khẩu mới -->
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label fw-semibold small">
+                            Mật khẩu mới <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" name="newPassword"
+                                   placeholder="Tối thiểu 6 ký tự" minlength="6" maxlength="100" required autocomplete="new-password" />
+                            <button class="btn btn-outline-secondary btn-toggle-pw" type="button" data-target="newPassword" title="Hiển thị mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">Độ dài từ 6 đến 100 ký tự.</div>
+                        <div class="invalid-feedback d-block d-none" id="errorNewPassword">Mật khẩu mới phải có từ 6 đến 100 ký tự.</div>
+                    </div>
+
+                    <!-- Xác nhận mật khẩu mới -->
+                    <div class="mb-2">
+                        <label for="confirmPassword" class="form-label fw-semibold small">
+                            Xác nhận mật khẩu mới <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                   placeholder="Nhập lại mật khẩu mới" minlength="6" maxlength="100" required autocomplete="new-password" />
+                            <button class="btn btn-outline-secondary btn-toggle-pw" type="button" data-target="confirmPassword" title="Hiển thị mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback d-block d-none" id="errorConfirmPassword">Xác nhận mật khẩu không khớp.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 px-4">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal" id="btnCancelChangePasswordModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitChangePassword">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerChangePassword" role="status" aria-hidden="true"></span>
+                        <span id="btnTextChangePassword">Đổi mật khẩu</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast thông báo thành công -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="profileToast" class="toast align-items-center text-white bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                <span id="toastMessage">Thao tác thành công!</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Helper lấy Antiforgery Token
+            function getCsrfToken() {
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
+            // Toast helper
+            const toastEl = document.getElementById('profileToast');
+            const toastMessageEl = document.getElementById('toastMessage');
+            const toastInstance = toastEl ? new bootstrap.Toast(toastEl, { delay: 4000 }) : null;
+
+            function showToast(message, isSuccess = true) {
+                if (!toastEl || !toastInstance) return;
+                if (isSuccess) {
+                    toastEl.className = 'toast align-items-center text-white bg-success border-0 shadow';
+                } else {
+                    toastEl.className = 'toast align-items-center text-white bg-danger border-0 shadow';
+                }
+                if (toastMessageEl) toastMessageEl.textContent = message;
+                toastInstance.show();
+            }
+
+            // Toggle Password Visibility
+            document.querySelectorAll('.btn-toggle-pw').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const targetId = this.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
+                    if (!input) return;
+
+                    const icon = this.querySelector('i');
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        if (icon) {
+                            icon.classList.remove('bi-eye');
+                            icon.classList.add('bi-eye-slash');
+                        }
+                    } else {
+                        input.type = 'password';
+                        if (icon) {
+                            icon.classList.remove('bi-eye-slash');
+                            icon.classList.add('bi-eye');
+                        }
+                    }
+                });
+            });
+
+            // ==========================================
+            // 1. MODAL CHỈNH SỬA THÔNG TIN HỒ SƠ
+            // ==========================================
+            const modalEditProfileEl = document.getElementById('modalEditProfile');
+            const modalEditProfileInstance = modalEditProfileEl ? new bootstrap.Modal(modalEditProfileEl) : null;
+            const btnOpenEditProfile = document.getElementById('btnOpenEditProfileModal');
+            const formEditProfile = document.getElementById('formEditProfile');
+
+            const editProfileName = document.getElementById('editProfileName');
+            const editProfileEmail = document.getElementById('editProfileEmail');
+            const editProfileAlert = document.getElementById('editProfileAlert');
+            const editProfileAlertText = document.getElementById('editProfileAlertText');
+
+            const errorEditProfileName = document.getElementById('errorEditProfileName');
+            const errorEditProfileEmail = document.getElementById('errorEditProfileEmail');
+
+            const btnSubmitEditProfile = document.getElementById('btnSubmitEditProfile');
+            const spinnerEditProfile = document.getElementById('spinnerEditProfile');
+            const btnTextEditProfile = document.getElementById('btnTextEditProfile');
+
+            btnOpenEditProfile?.addEventListener('click', function () {
+                // Reset alert và validation feedback
+                if (editProfileAlert) editProfileAlert.classList.add('d-none');
+                editProfileName?.classList.remove('is-invalid');
+                editProfileEmail?.classList.remove('is-invalid');
+
+                // Đồng bộ giá trị hiện tại trên màn hình
+                const currentName = document.getElementById('displayAccountName')?.textContent?.trim() || '';
+                const currentEmail = document.getElementById('displayAccountEmail')?.textContent?.trim() || '';
+                if (editProfileName) editProfileName.value = currentName === 'Chưa có thông tin' ? '' : currentName;
+                if (editProfileEmail) editProfileEmail.value = currentEmail === 'Chưa có thông tin' ? '' : currentEmail;
+
+                modalEditProfileInstance?.show();
+                setTimeout(() => editProfileName?.focus(), 300);
+            });
+
+            formEditProfile?.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                let isValid = true;
+                if (editProfileAlert) editProfileAlert.classList.add('d-none');
+
+                const nameVal = editProfileName?.value.trim() || '';
+                const emailVal = editProfileEmail?.value.trim() || '';
+
+                if (!nameVal) {
+                    editProfileName?.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    editProfileName?.classList.remove('is-invalid');
+                }
+
+                const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                if (!emailVal || !emailRegex.test(emailVal)) {
+                    editProfileEmail?.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    editProfileEmail?.classList.remove('is-invalid');
+                }
+
+                if (!isValid) return;
+
+                if (btnSubmitEditProfile) btnSubmitEditProfile.disabled = true;
+                if (spinnerEditProfile) spinnerEditProfile.classList.remove('d-none');
+                if (btnTextEditProfile) btnTextEditProfile.textContent = 'Đang lưu...';
+
+                try {
+                    const response = await fetch('/staff/profile?handler=UpdateProfile', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken()
+                        },
+                        body: JSON.stringify({
+                            accountName: nameVal,
+                            accountEmail: emailVal
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result && result.success) {
+                        modalEditProfileInstance?.hide();
+                        showToast(result.message || 'Cập nhật hồ sơ thành công!');
+
+                        // Cập nhật DOM trực tiếp
+                        const displayName = document.getElementById('displayAccountName');
+                        const displayEmail = document.getElementById('displayAccountEmail');
+                        if (displayName && result.profile) displayName.textContent = result.profile.accountName;
+                        if (displayEmail && result.profile) displayEmail.textContent = result.profile.accountEmail;
+                    } else {
+                        // Thất bại: Giữ nguyên input trong form, hiển thị lỗi
+                        if (editProfileAlert && editProfileAlertText) {
+                            editProfileAlertText.textContent = result.message || 'Không thể cập nhật hồ sơ.';
+                            editProfileAlert.classList.remove('d-none');
+                        }
+
+                        if (result.errors) {
+                            if (result.errors.AccountName || result.errors.accountName) {
+                                editProfileName?.classList.add('is-invalid');
+                                if (errorEditProfileName) {
+                                    errorEditProfileName.textContent = (result.errors.AccountName || result.errors.accountName)[0];
+                                }
+                            }
+                            if (result.errors.AccountEmail || result.errors.accountEmail) {
+                                editProfileEmail?.classList.add('is-invalid');
+                                if (errorEditProfileEmail) {
+                                    errorEditProfileEmail.textContent = (result.errors.AccountEmail || result.errors.accountEmail)[0];
+                                }
+                            }
+                        }
+                    }
+                } catch {
+                    if (editProfileAlert && editProfileAlertText) {
+                        editProfileAlertText.textContent = 'Lỗi kết nối máy chủ. Vui lòng thử lại sau.';
+                        editProfileAlert.classList.remove('d-none');
+                    }
+                } finally {
+                    if (btnSubmitEditProfile) btnSubmitEditProfile.disabled = false;
+                    if (spinnerEditProfile) spinnerEditProfile.classList.add('d-none');
+                    if (btnTextEditProfile) btnTextEditProfile.textContent = 'Lưu thông tin';
+                }
+            });
+
+            // ==========================================
+            // 2. MODAL ĐỔI MẬT KHẨU
+            // ==========================================
+            const modalChangePwEl = document.getElementById('modalChangePassword');
+            const modalChangePwInstance = modalChangePwEl ? new bootstrap.Modal(modalChangePwEl) : null;
+            const btnOpenChangePw = document.getElementById('btnOpenChangePasswordModal');
+            const formChangePw = document.getElementById('formChangePassword');
+
+            const currentPwInput = document.getElementById('currentPassword');
+            const newPwInput = document.getElementById('newPassword');
+            const confirmPwInput = document.getElementById('confirmPassword');
+
+            const changePwAlert = document.getElementById('changePasswordAlert');
+            const changePwAlertText = document.getElementById('changePasswordAlertText');
+
+            const errorCurrentPw = document.getElementById('errorCurrentPassword');
+            const errorNewPw = document.getElementById('errorNewPassword');
+            const errorConfirmPw = document.getElementById('errorConfirmPassword');
+
+            const btnSubmitChangePw = document.getElementById('btnSubmitChangePassword');
+            const spinnerChangePw = document.getElementById('spinnerChangePassword');
+            const btnTextChangePw = document.getElementById('btnTextChangePassword');
+
+            btnOpenChangePw?.addEventListener('click', function () {
+                if (changePwAlert) changePwAlert.classList.add('d-none');
+                currentPwInput?.classList.remove('is-invalid');
+                newPwInput?.classList.remove('is-invalid');
+                confirmPwInput?.classList.remove('is-invalid');
+
+                errorCurrentPw?.classList.add('d-none');
+                errorNewPw?.classList.add('d-none');
+                errorConfirmPw?.classList.add('d-none');
+
+                formChangePw?.reset();
+
+                modalChangePwInstance?.show();
+                setTimeout(() => currentPwInput?.focus(), 300);
+            });
+
+            formChangePw?.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                let isValid = true;
+                if (changePwAlert) changePwAlert.classList.add('d-none');
+
+                const curPw = currentPwInput?.value || '';
+                const newPw = newPwInput?.value || '';
+                const confPw = confirmPwInput?.value || '';
+
+                if (!curPw) {
+                    currentPwInput?.classList.add('is-invalid');
+                    errorCurrentPw?.classList.remove('d-none');
+                    isValid = false;
+                } else {
+                    currentPwInput?.classList.remove('is-invalid');
+                    errorCurrentPw?.classList.add('d-none');
+                }
+
+                if (!newPw || newPw.length < 6) {
+                    newPwInput?.classList.add('is-invalid');
+                    errorNewPw?.classList.remove('d-none');
+                    isValid = false;
+                } else {
+                    newPwInput?.classList.remove('is-invalid');
+                    errorNewPw?.classList.add('d-none');
+                }
+
+                if (!confPw || confPw !== newPw) {
+                    confirmPwInput?.classList.add('is-invalid');
+                    errorConfirmPw?.classList.remove('d-none');
+                    isValid = false;
+                } else {
+                    confirmPwInput?.classList.remove('is-invalid');
+                    errorConfirmPw?.classList.add('d-none');
+                }
+
+                if (!isValid) return;
+
+                if (btnSubmitChangePw) btnSubmitChangePw.disabled = true;
+                if (spinnerChangePw) spinnerChangePw.classList.remove('d-none');
+                if (btnTextChangePw) btnTextChangePw.textContent = 'Đang xử lý...';
+
+                try {
+                    const response = await fetch('/staff/profile?handler=ChangePassword', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken()
+                        },
+                        body: JSON.stringify({
+                            currentPassword: curPw,
+                            newPassword: newPw,
+                            confirmPassword: confPw
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result && result.success) {
+                        modalChangePwInstance?.hide();
+                        formChangePw?.reset();
+                        showToast(result.message || 'Đổi mật khẩu thành công!');
+                    } else {
+                        // Thất bại: Giữ nguyên input (AC 5), hiển thị lỗi rõ ràng
+                        if (changePwAlert && changePwAlertText) {
+                            changePwAlertText.textContent = result.message || 'Không thể đổi mật khẩu.';
+                            changePwAlert.classList.remove('d-none');
+                        }
+
+                        if (result.errors) {
+                            if (result.errors.CurrentPassword || result.errors.currentPassword) {
+                                currentPwInput?.classList.add('is-invalid');
+                                if (errorCurrentPw) {
+                                    errorCurrentPw.textContent = (result.errors.CurrentPassword || result.errors.currentPassword)[0];
+                                    errorCurrentPw.classList.remove('d-none');
+                                }
+                            }
+                            if (result.errors.NewPassword || result.errors.newPassword) {
+                                newPwInput?.classList.add('is-invalid');
+                                if (errorNewPw) {
+                                    errorNewPw.textContent = (result.errors.NewPassword || result.errors.newPassword)[0];
+                                    errorNewPw.classList.remove('d-none');
+                                }
+                            }
+                            if (result.errors.ConfirmPassword || result.errors.confirmPassword) {
+                                confirmPwInput?.classList.add('is-invalid');
+                                if (errorConfirmPw) {
+                                    errorConfirmPw.textContent = (result.errors.ConfirmPassword || result.errors.confirmPassword)[0];
+                                    errorConfirmPw.classList.remove('d-none');
+                                }
+                            }
+                        }
+                    }
+                } catch {
+                    if (changePwAlert && changePwAlertText) {
+                        changePwAlertText.textContent = 'Lỗi kết nối máy chủ. Vui lòng thử lại sau.';
+                        changePwAlert.classList.remove('d-none');
+                    }
+                } finally {
+                    if (btnSubmitChangePw) btnSubmitChangePw.disabled = false;
+                    if (spinnerChangePw) spinnerChangePw.classList.add('d-none');
+                    if (btnTextChangePw) btnTextChangePw.textContent = 'Đổi mật khẩu';
+                }
+            });
+        });
+    </script>
+}

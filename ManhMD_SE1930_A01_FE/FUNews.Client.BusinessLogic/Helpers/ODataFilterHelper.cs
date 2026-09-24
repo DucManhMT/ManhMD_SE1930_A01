@@ -47,4 +47,41 @@ public static class ODataFilterHelper
 
         return string.Join("&", queryParts);
     }
+
+    public static string BuildCategoriesQuery(string? searchTerm, string? statusFilter, int top = 100)
+    {
+        var filters = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            if (string.Equals(statusFilter, "active", StringComparison.OrdinalIgnoreCase))
+            {
+                filters.Add("isActive eq true");
+            }
+            else if (string.Equals(statusFilter, "inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                filters.Add("isActive eq false");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var safeTerm = EscapeStringLiteral(searchTerm);
+            filters.Add($"(contains(categoryName,'{safeTerm}') or contains(categoryDescription,'{safeTerm}'))");
+        }
+
+        var queryParts = new List<string>
+        {
+            "$orderby=categoryId asc",
+            "$count=true",
+            $"$top={top}"
+        };
+
+        if (filters.Count > 0)
+        {
+            queryParts.Insert(0, $"$filter={string.Join(" and ", filters)}");
+        }
+
+        return string.Join("&", queryParts);
+    }
 }

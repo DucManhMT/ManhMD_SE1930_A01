@@ -4,20 +4,504 @@
     ViewData["Title"] = "Quản lý chuyên mục";
 }
 
-<div class="container fu-container-public">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+<div class="container fu-container-public py-4">
+    <!-- Breadcrumb & Header -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Quản trị nhân viên</li>
+            <li class="breadcrumb-item active" aria-current="page">Quản lý chuyên mục</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-2">
         <div>
-            <h1 class="h3 fw-bold text-dark mb-1">Quản lý chuyên mục tin tức</h1>
-            <p class="text-muted small mb-0">Nhân viên tạo, quản lý và cấu hình trạng thái chuyên mục</p>
+            <h1 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-folder-fill text-primary me-2"></i>Quản lý chuyên mục tin tức
+            </h1>
+            <p class="text-muted small mb-0">Theo dõi, tìm kiếm, xem số lượng bài viết và tạo mới chuyên mục tin tức</p>
         </div>
-        <span class="badge bg-primary fs-6 px-3 py-2">Staff Only</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary px-3 py-2 fs-6">
+                Tổng số: <span id="badgeTotalCount">@Model.TotalCount</span> chuyên mục
+            </span>
+            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreateCategory" id="btnOpenCreateCategoryModal">
+                <i class="bi bi-folder-plus me-1"></i>Thêm chuyên mục
+            </button>
+        </div>
     </div>
 
-    <div class="card card-fu shadow-sm p-4 text-center my-4">
-        <div class="py-4">
-            <h2 class="h5 fw-bold text-primary mb-2">Chức năng Quản lý chuyên mục</h2>
-            <p class="text-muted mb-3">Màn hình danh sách chuyên mục, đếm số bài, modal thêm/sửa đang được phát triển trong task <strong>[FUN-008]</strong>.</p>
-            <a asp-page="/Index" class="btn btn-outline-primary btn-sm">Quay về trang tin tức</a>
+    <!-- Alert Messages (nếu có lỗi tải trang) -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Card -->
+    <div class="card card-fu shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" id="formCategoryFilter" class="row g-2 align-items-end">
+                <div class="col-md-6 col-lg-5">
+                    <label for="inputCategorySearchTerm" class="form-label small fw-semibold text-muted mb-1">Tìm kiếm</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="inputCategorySearchTerm" name="searchTerm" value="@Model.SearchTerm" class="form-control border-start-0" placeholder="Nhập tên hoặc mô tả chuyên mục..." />
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label for="selectCategoryStatusFilter" class="form-label small fw-semibold text-muted mb-1">Trạng thái</label>
+                    <select id="selectCategoryStatusFilter" name="statusFilter" class="form-select">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="active" selected="@(string.Equals(Model.StatusFilter, "active", StringComparison.OrdinalIgnoreCase))">Hoạt động (Active)</option>
+                        <option value="inactive" selected="@(string.Equals(Model.StatusFilter, "inactive", StringComparison.OrdinalIgnoreCase))">Tạm ẩn (Inactive)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-primary" id="btnCategoryFilterSubmit">
+                        <i class="bi bi-funnel me-1"></i>Lọc
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || !string.IsNullOrWhiteSpace(Model.StatusFilter))
+                    {
+                        <a asp-page="/Staff/Categories" class="btn btn-outline-secondary" id="btnResetCategoryFilter" title="Xóa bộ lọc">
+                            <i class="bi bi-x-circle me-1"></i>Xóa lọc
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Categories Table Card -->
+    <div class="card card-fu shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tableCategories">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 80px;" class="text-center">Mã ID</th>
+                        <th scope="col" style="min-width: 180px;">Tên chuyên mục</th>
+                        <th scope="col">Mô tả</th>
+                        <th scope="col" style="min-width: 160px;">Danh mục cha</th>
+                        <th scope="col" style="width: 120px;" class="text-center">Số bài viết</th>
+                        <th scope="col" style="width: 130px;" class="text-center">Trạng thái</th>
+                        <th scope="col" style="width: 120px;" class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="tableCategoriesBody">
+                    @if (Model.Categories.Any())
+                    {
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <tr id="row-category-@cat.CategoryId" data-category-id="@cat.CategoryId" data-category-name="@cat.CategoryName" data-category-desc="@cat.CategoryDescription" data-parent-id="@cat.ParentCategoryId" data-is-active="@(cat.IsActive == true ? "true" : "false")">
+                                <td class="text-center fw-semibold text-muted">@cat.CategoryId</td>
+                                <td>
+                                    <div class="fw-bold text-dark cell-category-name">@cat.CategoryName</div>
+                                </td>
+                                <td>
+                                    <span class="text-secondary small cell-category-desc">@cat.CategoryDescription</span>
+                                </td>
+                                <td>
+                                    @if (cat.ParentCategoryId.HasValue && !string.IsNullOrEmpty(cat.ParentCategoryName))
+                                    {
+                                        <span class="badge bg-light text-dark border cell-category-parent">
+                                            <i class="bi bi-diagram-2 me-1 text-primary"></i>@cat.ParentCategoryName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic small cell-category-parent">Gốc (Không có)</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 cell-category-articles">
+                                        <i class="bi bi-newspaper me-1"></i>@cat.ArticleCount bài
+                                    </span>
+                                </td>
+                                <td class="text-center cell-category-status">
+                                    @if (cat.IsActive == true)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                            <i class="bi bi-check-circle me-1"></i>Hoạt động
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                                            <i class="bi bi-dash-circle me-1"></i>Tạm ẩn
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Chỉnh sửa (Sắp có trong FUN-009)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Xóa (Sắp có trong FUN-009)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr id="rowEmptyCategories">
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder2-open fs-1 d-block mb-2 text-secondary"></i>
+                                <span>Không tìm thấy chuyên mục nào phù hợp với điều kiện tìm kiếm.</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- Modal Thêm chuyên mục mới (AJAX) -->
+<div class="modal fade" id="modalCreateCategory" tabindex="-1" aria-labelledby="modalCreateCategoryLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title h6 fw-bold mb-0" id="modalCreateCategoryLabel">
+                    <i class="bi bi-folder-plus me-2"></i>Thêm chuyên mục tin tức mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnCloseCreateCategoryModal"></button>
+            </div>
+            <form id="formCreateCategory" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <!-- Alert thông báo lỗi tổng quan -->
+                    <div class="alert alert-danger d-none py-2 mb-3" id="createCategoryAlert" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="createCategoryAlertText"></span>
+                    </div>
+
+                    <!-- Tên chuyên mục -->
+                    <div class="mb-3">
+                        <label for="createCategoryName" class="form-label fw-semibold small">
+                            Tên chuyên mục <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="createCategoryName" name="categoryName" placeholder="Ví dụ: Công nghệ thông tin" maxlength="100" required />
+                        <div class="invalid-feedback" id="errorCategoryName">Tên chuyên mục là bắt buộc (tối đa 100 ký tự).</div>
+                    </div>
+
+                    <!-- Mô tả chuyên mục -->
+                    <div class="mb-3">
+                        <label for="createCategoryDescription" class="form-label fw-semibold small">
+                            Mô tả chuyên mục <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="createCategoryDescription" name="categoryDescription" rows="3" placeholder="Mô tả tóm tắt về phạm vi nội dung của chuyên mục..." maxlength="250" required></textarea>
+                        <div class="form-text text-muted small text-end"><span id="categoryDescCount">0</span>/250 ký tự</div>
+                        <div class="invalid-feedback" id="errorCategoryDescription">Mô tả chuyên mục là bắt buộc (tối đa 250 ký tự).</div>
+                    </div>
+
+                    <!-- Danh mục cha (Parent Category) -->
+                    <div class="mb-3">
+                        <label for="createParentCategoryId" class="form-label fw-semibold small">
+                            Danh mục cha <span class="text-muted">(Tùy chọn)</span>
+                        </label>
+                        <select class="form-select" id="createParentCategoryId" name="parentCategoryId">
+                            <option value="">-- Không có (Chuyên mục gốc) --</option>
+                            @foreach (var parent in Model.ParentCategories)
+                            {
+                                <option value="@parent.CategoryId">@parent.CategoryName</option>
+                            }
+                        </select>
+                        <div class="form-text text-muted small">Chọn chuyên mục cha để tạo cấu trúc phân cấp, hoặc để trống nếu là danh mục cấp cao nhất.</div>
+                        <div class="invalid-feedback" id="errorParentCategoryId">Danh mục cha không hợp lệ.</div>
+                    </div>
+
+                    <!-- Trạng thái kích hoạt (IsActive) -->
+                    <div class="mb-2 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="createCategoryIsActive" name="isActive" checked />
+                        <label class="form-check-label fw-semibold small" for="createCategoryIsActive">
+                            Kích hoạt chuyên mục ngay khi tạo
+                        </label>
+                        <div class="form-text text-muted small">Chuyên mục hoạt động sẽ hiển thị cho độc giả và người viết tin.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 px-4">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal" id="btnCancelCreateCategoryModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitCreateCategory">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerCreateCategory" role="status" aria-hidden="true"></span>
+                        <span id="btnTextCreateCategory">Lưu chuyên mục</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast thông báo thành công / lỗi -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="categoryToast" class="toast align-items-center text-white bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2 fs-6"></i>
+                <span id="categoryToastMsg">Thao tác thành công.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Anti-Forgery Token
+            function getCsrfToken() {
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
+            // Toast instance
+            const toastEl = document.getElementById('categoryToast');
+            const toastMsg = document.getElementById('categoryToastMsg');
+            const toastInstance = toastEl ? new bootstrap.Toast(toastEl, { delay: 4000 }) : null;
+
+            function showToast(message, isError = false) {
+                if (toastEl) {
+                    toastEl.classList.toggle('bg-success', !isError);
+                    toastEl.classList.toggle('bg-danger', isError);
+                }
+                if (toastMsg) toastMsg.textContent = message;
+                toastInstance?.show();
+            }
+
+            function setFieldError(inputEl, errorDivId, message) {
+                if (inputEl) inputEl.classList.add('is-invalid');
+                const errDiv = document.getElementById(errorDivId);
+                if (errDiv) errDiv.textContent = message;
+            }
+
+            function clearFieldError(inputEl, errorDivId) {
+                if (inputEl) inputEl.classList.remove('is-invalid');
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.toString().replace(/[&<>"']/g, m => map[m]);
+            }
+
+            // ==========================================
+            // XỬ LÝ MODAL TẠO CHUYÊN MỤC
+            // ==========================================
+            const createModalEl = document.getElementById('modalCreateCategory');
+            const createModal = createModalEl ? new bootstrap.Modal(createModalEl) : null;
+            const createForm = document.getElementById('formCreateCategory');
+            const nameInput = document.getElementById('createCategoryName');
+            const descInput = document.getElementById('createCategoryDescription');
+            const descCount = document.getElementById('categoryDescCount');
+            const parentSelect = document.getElementById('createParentCategoryId');
+            const isActiveSwitch = document.getElementById('createCategoryIsActive');
+            const alertBox = document.getElementById('createCategoryAlert');
+            const alertText = document.getElementById('createCategoryAlertText');
+            const submitBtn = document.getElementById('btnSubmitCreateCategory');
+            const spinner = document.getElementById('spinnerCreateCategory');
+            const btnText = document.getElementById('btnTextCreateCategory');
+
+            // Counter ký tự mô tả
+            descInput?.addEventListener('input', function () {
+                if (descCount) descCount.textContent = descInput.value.length;
+                clearFieldError(descInput, 'errorCategoryDescription');
+            });
+
+            nameInput?.addEventListener('input', () => clearFieldError(nameInput, 'errorCategoryName'));
+            parentSelect?.addEventListener('change', () => clearFieldError(parentSelect, 'errorParentCategoryId'));
+
+            function resetCreateModal() {
+                if (createForm) createForm.reset();
+                if (isActiveSwitch) isActiveSwitch.checked = true;
+                if (descCount) descCount.textContent = '0';
+                [nameInput, descInput, parentSelect].forEach(inp => inp && inp.classList.remove('is-invalid'));
+                if (alertBox) alertBox.classList.add('d-none');
+            }
+
+            createModalEl?.addEventListener('show.bs.modal', function () {
+                resetCreateModal();
+            });
+
+            createForm?.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                let isValid = true;
+                const nameVal = nameInput ? nameInput.value.trim() : '';
+                const descVal = descInput ? descInput.value.trim() : '';
+                const parentVal = parentSelect && parentSelect.value ? parseInt(parentSelect.value) : null;
+                const isActiveVal = isActiveSwitch ? isActiveSwitch.checked : true;
+
+                // Validation client-side
+                if (!nameVal) {
+                    setFieldError(nameInput, 'errorCategoryName', 'Tên chuyên mục là bắt buộc.');
+                    isValid = false;
+                } else if (nameVal.length > 100) {
+                    setFieldError(nameInput, 'errorCategoryName', 'Tên chuyên mục không được vượt quá 100 ký tự.');
+                    isValid = false;
+                }
+
+                if (!descVal) {
+                    setFieldError(descInput, 'errorCategoryDescription', 'Mô tả chuyên mục là bắt buộc.');
+                    isValid = false;
+                } else if (descVal.length > 250) {
+                    setFieldError(descInput, 'errorCategoryDescription', 'Mô tả chuyên mục không được vượt quá 250 ký tự.');
+                    isValid = false;
+                }
+
+                if (!isValid) return;
+
+                // Chuẩn bị payload
+                const payload = {
+                    categoryName: nameVal,
+                    categoryDescription: descVal,
+                    parentCategoryId: isNaN(parentVal) ? null : parentVal,
+                    isActive: isActiveVal
+                };
+
+                // Trạng thái loading
+                if (submitBtn) submitBtn.disabled = true;
+                if (spinner) spinner.classList.remove('d-none');
+                if (btnText) btnText.textContent = 'Đang lưu...';
+                if (alertBox) alertBox.classList.add('d-none');
+
+                try {
+                    const response = await fetch('/staff/categories?handler=Create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken()
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result && result.success) {
+                        createModal?.hide();
+                        showToast(result.message || 'Thêm chuyên mục thành công.');
+
+                        // Chèn chuyên mục mới vào DOM table
+                        insertCategoryRow(result.category);
+
+                        // Thêm vào danh sách Parent Categories dropdown
+                        addCategoryToParentSelect(result.category);
+
+                        // Cập nhật tổng số chuyên mục
+                        const badgeTotal = document.getElementById('badgeTotalCount');
+                        if (badgeTotal) {
+                            const current = parseInt(badgeTotal.textContent) || 0;
+                            badgeTotal.textContent = current + 1;
+                        }
+                    } else {
+                        // Hiển thị lỗi từ backend
+                        const msg = (result && result.message) ? result.message : 'Không thể thêm chuyên mục. Vui lòng kiểm tra lại.';
+                        if (alertText) alertText.textContent = msg;
+                        if (alertBox) alertBox.classList.remove('d-none');
+
+                        if (result && result.errors) {
+                            for (const [key, errArr] of Object.entries(result.errors)) {
+                                const errText = Array.isArray(errArr) ? errArr.join(', ') : errArr;
+                                if (key.toLowerCase().includes('name')) {
+                                    setFieldError(nameInput, 'errorCategoryName', errText);
+                                } else if (key.toLowerCase().includes('desc')) {
+                                    setFieldError(descInput, 'errorCategoryDescription', errText);
+                                } else if (key.toLowerCase().includes('parent')) {
+                                    setFieldError(parentSelect, 'errorParentCategoryId', errText);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    if (alertText) alertText.textContent = 'Lỗi kết nối tới máy chủ khi gửi dữ liệu. Vui lòng thử lại sau.';
+                    if (alertBox) alertBox.classList.remove('d-none');
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (spinner) spinner.classList.add('d-none');
+                    if (btnText) btnText.textContent = 'Lưu chuyên mục';
+                }
+            });
+
+            // ==========================================
+            // CẬP NHẬT GIAO DIỆN DOM
+            // ==========================================
+            function insertCategoryRow(cat) {
+                if (!cat) return;
+                const tbody = document.getElementById('tableCategoriesBody');
+                if (!tbody) return;
+
+                const emptyRow = document.getElementById('rowEmptyCategories');
+                if (emptyRow) emptyRow.remove();
+
+                const parentDisplay = (cat.parentCategoryId && cat.parentCategoryName)
+                    ? `<span class="badge bg-light text-dark border cell-category-parent"><i class="bi bi-diagram-2 me-1 text-primary"></i>${escapeHtml(cat.parentCategoryName)}</span>`
+                    : `<span class="text-muted fst-italic small cell-category-parent">Gốc (Không có)</span>`;
+
+                const statusBadge = (cat.isActive === true)
+                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle me-1"></i>Hoạt động</span>`
+                    : `<span class="badge bg-secondary-subtle text-secondary border px-2 py-1"><i class="bi bi-dash-circle me-1"></i>Tạm ẩn</span>`;
+
+                const articleCount = cat.articleCount || 0;
+
+                const tr = document.createElement('tr');
+                tr.id = `row-category-${cat.categoryId}`;
+                tr.setAttribute('data-category-id', cat.categoryId);
+                tr.setAttribute('data-category-name', cat.categoryName);
+                tr.setAttribute('data-category-desc', cat.categoryDescription);
+                tr.setAttribute('data-parent-id', cat.parentCategoryId || '');
+                tr.setAttribute('data-is-active', cat.isActive === true ? 'true' : 'false');
+                tr.className = 'table-success-subtle';
+
+                tr.innerHTML = `
+                    <td class="text-center fw-semibold text-muted">${cat.categoryId}</td>
+                    <td><div class="fw-bold text-dark cell-category-name">${escapeHtml(cat.categoryName)}</div></td>
+                    <td><span class="text-secondary small cell-category-desc">${escapeHtml(cat.categoryDescription)}</span></td>
+                    <td>${parentDisplay}</td>
+                    <td class="text-center">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 cell-category-articles">
+                            <i class="bi bi-newspaper me-1"></i>${articleCount} bài
+                        </span>
+                    </td>
+                    <td class="text-center cell-category-status">${statusBadge}</td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Chỉnh sửa (Sắp có trong FUN-009)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Xóa (Sắp có trong FUN-009)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.prepend(tr);
+
+                setTimeout(() => {
+                    tr.classList.remove('table-success-subtle');
+                }, 2000);
+            }
+
+            function addCategoryToParentSelect(cat) {
+                if (!cat || !parentSelect) return;
+                // Thêm vào danh mục cha nếu đang active
+                if (cat.isActive === true) {
+                    const option = document.createElement('option');
+                    option.value = cat.categoryId;
+                    option.textContent = cat.categoryName;
+                    parentSelect.appendChild(option);
+                }
+            }
+        });
+    </script>
+}

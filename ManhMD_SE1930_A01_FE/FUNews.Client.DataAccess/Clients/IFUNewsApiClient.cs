@@ -6,6 +6,7 @@ public interface IFUNewsApiClient
 {
     Task<ODataEnvelope<CategoryApiModel>> GetCategoriesAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<CategoryApiModel?> GetCategoryByIdAsync(short id, CancellationToken cancellationToken = default);
+    Task<CategoryApiModel> CreateCategoryAsync(CreateCategoryApiModel request, CancellationToken cancellationToken = default);
 
     Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<TagApiModel?> GetTagByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -18,6 +19,9 @@ public interface IFUNewsApiClient
     Task<AccountApiModel> CreateAccountAsync(CreateAccountApiModel request, CancellationToken cancellationToken = default);
     Task<AccountApiModel> UpdateAccountAsync(short id, UpdateAccountApiModel request, CancellationToken cancellationToken = default);
     Task DeleteAccountAsync(short id, CancellationToken cancellationToken = default);
+    Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default);
+    Task<AccountApiModel> UpdateProfileAsync(UpdateProfileApiModel request, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default);
 
     Task<LoginResponseApiModel> LoginAsync(LoginRequestApiModel request, CancellationToken cancellationToken = default);
 }
