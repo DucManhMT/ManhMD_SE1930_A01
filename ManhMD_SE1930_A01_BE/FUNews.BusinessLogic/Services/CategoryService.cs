@@ -34,44 +34,15 @@ public class CategoryService : ICategoryService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var trimmedName = request.CategoryName?.Trim() ?? string.Empty;
-        var trimmedDesc = request.CategoryDescription?.Trim() ?? string.Empty;
+        var trimmedName = CategoryValidationHelper.ValidateAndTrimName(request.CategoryName);
+        var trimmedDesc = CategoryValidationHelper.ValidateAndTrimDescription(request.CategoryDescription);
 
-        if (string.IsNullOrWhiteSpace(trimmedName))
-        {
-            throw new ValidationException(nameof(request.CategoryName), "Tên chuyên mục là bắt buộc.");
-        }
+        await ValidateParentCategoryAsync(request.ParentCategoryId, currentCategoryId: null, cancellationToken);
 
-        if (trimmedName.Length > 100)
-        {
-            throw new ValidationException(nameof(request.CategoryName), "Tên chuyên mục không được vượt quá 100 ký tự.");
-        }
-
-        if (string.IsNullOrWhiteSpace(trimmedDesc))
-        {
-            throw new ValidationException(nameof(request.CategoryDescription), "Mô tả chuyên mục là bắt buộc.");
-        }
-
-        if (trimmedDesc.Length > 250)
-        {
-            throw new ValidationException(nameof(request.CategoryDescription), "Mô tả chuyên mục không được vượt quá 250 ký tự.");
-        }
-
-        // Chặn self/cycle và kiểm tra danh mục cha nếu có chỉ định
-        if (request.ParentCategoryId.HasValue)
-        {
-            var parentExists = await _categoryRepository.ExistsAsync(request.ParentCategoryId.Value, cancellationToken);
-            if (!parentExists)
-            {
-                throw new ValidationException(nameof(request.ParentCategoryId), "Danh mục cha không tồn tại trong hệ thống.");
-            }
-        }
-
-        // Kiểm tra tính duy nhất cùng parent (kể cả parent == null)
         var isUnique = await _categoryRepository.IsNameUniqueAsync(trimmedName, request.ParentCategoryId, null, cancellationToken);
         if (!isUnique)
         {
-            throw new ValidationException(nameof(request.CategoryName), "Tên danh mục đã tồn tại trong cùng danh mục cha.");
+            throw new ValidationException(nameof(request.CategoryName), CategoryValidationHelper.CreateDuplicateNameMessage);
         }
 
         var category = new Category
@@ -95,11 +66,136 @@ public class CategoryService : ICategoryService
         }
         catch (DbUpdateException ex)
         {
-            if (ex.InnerException?.Message.Contains("UQ_Category_Name") == true)
-            {
-                throw new ValidationException(nameof(request.CategoryName), "Tên danh mục đã tồn tại trong cùng danh mục cha.");
-            }
+            CategoryValidationHelper.HandleDbUpdateException(ex, message: CategoryValidationHelper.CreateDuplicateNameMessage);
             throw;
         }
+    }
+
+    public async Task<CategoryDto> UpdateAsync(short id, UpdateCategoryRequestDto request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var existing = await _categoryRepository.GetByIdAsync(id, cancellationToken);
+        if (existing == null)
+        {
+            throw new NotFoundException($"Chuyên mục với mã {id} không tồn tại.");
+        }
+
+        var trimmedName = CategoryValidationHelper.ValidateAndTrimName(request.CategoryName);
+        var trimmedDesc = CategoryValidationHelper.ValidateAndTrimDescription(request.CategoryDescription);
+
+        CategoryValidationHelper.ValidateParentNotSelf(request.ParentCategoryId, id);
+        await ValidateParentCategoryAsync(request.ParentCategoryId, currentCategoryId: id, cancellationToken);
+        await ValidateParentChangeAsync(existing, request.ParentCategoryId, cancellationToken);
+
+        var isUnique = await _categoryRepository.IsNameUniqueAsync(trimmedName, request.ParentCategoryId, id, cancellationToken);
+        if (!isUnique)
+        {
+            throw new ValidationException(nameof(request.CategoryName), CategoryValidationHelper.DuplicateNameMessage);
+        }
+
+        existing.CategoryName = trimmedName;
+        existing.CategoryDescription = trimmedDesc;
+        existing.ParentCategoryID = request.ParentCategoryId;
+        if (request.IsActive.HasValue)
+        {
+            existing.IsActive = request.IsActive.Value;
+        }
+
+        try
+        {
+            var updated = await _categoryRepository.UpdateAsync(existing, cancellationToken);
+            var resultCategory = await _categoryRepository.GetByIdWithParentAndChildrenAsync(updated.CategoryID, cancellationToken);
+            return CategoryMappingHelper.ToDto(resultCategory ?? updated, isStaff: true);
+        }
+        catch (DbUpdateException ex)
+        {
+            CategoryValidationHelper.HandleDbUpdateException(ex, message: CategoryValidationHelper.DuplicateNameMessage);
+            throw;
+        }
+    }
+
+    public async Task DeleteAsync(short id, CancellationToken cancellationToken = default)
+    {
+        var existing = await _categoryRepository.GetByIdAsync(id, cancellationToken);
+        if (existing == null)
+        {
+            throw new NotFoundException($"Chuyên mục với mã {id} không tồn tại.");
+        }
+
+        await ValidateDeletableAsync(id, cancellationToken);
+        await _categoryRepository.DeleteAsync(id, cancellationToken);
+    }
+
+    private async Task ValidateParentCategoryAsync(short? parentCategoryId, short? currentCategoryId, CancellationToken cancellationToken)
+    {
+        if (!parentCategoryId.HasValue)
+        {
+            return;
+        }
+
+        var parentExists = await _categoryRepository.ExistsAsync(parentCategoryId.Value, cancellationToken);
+        if (!parentExists)
+        {
+            throw new ValidationException("ParentCategoryId", "Danh mục cha không tồn tại trong hệ thống.");
+        }
+
+        if (currentCategoryId.HasValue)
+        {
+            var isDescendant = await IsDescendantAsync(currentCategoryId.Value, parentCategoryId.Value, cancellationToken);
+            if (isDescendant)
+            {
+                throw new ValidationException("ParentCategoryId", "Không thể chọn chuyên mục con làm danh mục cha (tránh tạo vòng lặp).");
+            }
+        }
+    }
+
+    private async Task ValidateParentChangeAsync(Category existing, short? newParentCategoryId, CancellationToken cancellationToken)
+    {
+        if (existing.ParentCategoryID != newParentCategoryId)
+        {
+            var hasArticles = await _categoryRepository.HasArticlesAsync(existing.CategoryID, cancellationToken);
+            if (hasArticles)
+            {
+                throw new ValidationException("ParentCategoryId", "Không thể thay đổi danh mục cha của chuyên mục đã có bài viết.");
+            }
+        }
+    }
+
+    private async Task ValidateDeletableAsync(short categoryId, CancellationToken cancellationToken)
+    {
+        if (await _categoryRepository.HasArticlesAsync(categoryId, cancellationToken))
+        {
+            throw new ConflictException("Không thể xóa chuyên mục vì đang có bài viết liên kết.");
+        }
+
+        if (await _categoryRepository.HasChildrenAsync(categoryId, cancellationToken))
+        {
+            throw new ConflictException("Không thể xóa chuyên mục vì đang có chuyên mục con.");
+        }
+    }
+
+    private async Task<bool> IsDescendantAsync(short rootId, short candidateId, CancellationToken cancellationToken)
+    {
+        var currentId = (short?)candidateId;
+        var visited = new HashSet<short>();
+
+        while (currentId.HasValue)
+        {
+            if (currentId.Value == rootId)
+            {
+                return true;
+            }
+
+            if (!visited.Add(currentId.Value))
+            {
+                break;
+            }
+
+            var parent = await _categoryRepository.GetByIdAsync(currentId.Value, cancellationToken);
+            currentId = parent?.ParentCategoryID;
+        }
+
+        return false;
     }
 }

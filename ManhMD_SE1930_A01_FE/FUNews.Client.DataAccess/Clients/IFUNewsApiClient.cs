@@ -7,6 +7,8 @@ public interface IFUNewsApiClient
     Task<ODataEnvelope<CategoryApiModel>> GetCategoriesAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<CategoryApiModel?> GetCategoryByIdAsync(short id, CancellationToken cancellationToken = default);
     Task<CategoryApiModel> CreateCategoryAsync(CreateCategoryApiModel request, CancellationToken cancellationToken = default);
+    Task<CategoryApiModel> UpdateCategoryAsync(short id, UpdateCategoryApiModel request, CancellationToken cancellationToken = default);
+    Task DeleteCategoryAsync(short id, CancellationToken cancellationToken = default);
 
     Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<TagApiModel?> GetTagByIdAsync(int id, CancellationToken cancellationToken = default);

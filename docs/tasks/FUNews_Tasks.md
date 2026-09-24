@@ -18,7 +18,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-006 | Sửa và xóa tài khoản | 005 | DONE |
 | FUN-007 | Hồ sơ và đổi mật khẩu | 004 | DONE |
 | FUN-008 | Danh sách và thêm danh mục | 004 | DONE |
-| FUN-009 | Sửa trạng thái và xóa danh mục | 008 | TODO |
+| FUN-009 | Sửa trạng thái và xóa danh mục | 008 | DONE |
 | FUN-010 | Quản lý tag | 004 | TODO |
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | TODO |
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | TODO |
@@ -384,7 +384,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-009 — Sửa trạng thái và xóa danh mục
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 008
 - Actor: Staff
 - Điểm vào/phạm vi file: /staff/categories; /api/category/{id}
@@ -400,10 +400,26 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Helpers & DTOs: [CategoryValidationHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/CategoryValidationHelper.cs), [UpdateCategoryRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/UpdateCategoryRequestDto.cs).
+  - BE Services & Controllers: [ICategoryService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/ICategoryService.cs), [CategoryService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/CategoryService.cs), [CategoryController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/CategoryController.cs).
+  - FE DataAccess Models & Clients: [UpdateCategoryApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/UpdateCategoryApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic: [ICategoryClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/ICategoryClientService.cs), [CategoryClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/CategoryClientService.cs).
+  - FE Presentation (Razor Page & UI): [Categories.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Categories.cshtml), [Categories.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Categories.cshtml.cs).
+  - Tests: [CategoryManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/CategoryManagementTests.cs), [CategoriesRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/CategoriesRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 69/69 Passed (100%) — gồm 5 tests acceptance criteria FUN-009.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 53/53 Passed (100%) — gồm 4 unit tests handler cập nhật/xóa FUN-009.
+- UI/SQL/API evidence:
+  - Kiểm tra 5/5 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Category có bài không đổi parent: Trong `CategoryService.UpdateAsync`, khi phát hiện `existing.ParentCategoryID != request.ParentCategoryId` và `HasArticlesAsync(id) == true`, hệ thống ném `ValidationException` trả về HTTP 400 Bad Request ("Không thể thay đổi danh mục cha của chuyên mục đã có bài viết."). Trên UI modal Sửa chuyên mục, nếu `articleCount > 0`, dropdown chọn danh mục cha bị tự động `disabled` kèm thông báo chú thích màu vàng.
+    2. Có bài/con không xóa: Trong `CategoryService.DeleteAsync`, kiểm tra `HasArticlesAsync(id)` và `HasChildrenAsync(id)`. Nếu có, ném `ConflictException` trả về HTTP 409 Conflict. Trên UI modal Xóa chuyên mục, hệ thống kiểm tra và cảnh báo chặn xóa, nút xác nhận xóa bị vô hiệu hóa nếu chuyên mục đang có bài viết hoặc chuyên mục con.
+    3. Tên trùng bị chặn & Chặn cycle/self: Khi cập nhật, `CategoryService.UpdateAsync` kiểm tra tự tham chiếu (`ParentCategoryId == id`), kiểm tra chu trình (`IsDescendantAsync`), và kiểm tra trùng tên cùng cha qua `IsNameUniqueAsync(name, parentId, excludeId: id)` + Unique Index DB (`UQ_Category_Name_ParentNotNull` / `UQ_Category_Name_ParentNull`). Nếu trùng hoặc chu trình, trả về HTTP 400 Bad Request kèm message lỗi rõ ràng.
+    4. Empty category xóa được: Category không có bài viết và không có chuyên mục con được xóa thành công khỏi database qua `CategoryRepository.DeleteAsync`, API trả về HTTP 204 NoContent, UI cập nhật DOM mượt mà không reload trang.
+    5. Không xóa article dây chuyền: Ràng buộc khóa ngoại Foreign Key `FK_NewsArticle_Category` được cấu hình `Restrict/NoAction` trong database và `CategoryService.DeleteAsync` chặn xóa khi có bài viết, bảo toàn tính toàn vẹn dữ liệu, tuyệt đối không cascade delete bài viết.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-010 — Quản lý tag
 

@@ -62,25 +62,22 @@ public class CategoryController : ControllerBase
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Update(short id)
+    public async Task<ActionResult<CategoryDto>> Update(short id, [FromBody] UpdateCategoryRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (!ModelState.IsValid)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng cập nhật danh mục thuộc phạm vi task FUN-009."
-        });
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await _categoryService.UpdateAsync(id, request, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Delete(short id)
+    public async Task<IActionResult> Delete(short id, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
-        {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng xóa danh mục thuộc phạm vi task FUN-009."
-        });
+        await _categoryService.DeleteAsync(id, cancellationToken);
+        return NoContent();
     }
 }

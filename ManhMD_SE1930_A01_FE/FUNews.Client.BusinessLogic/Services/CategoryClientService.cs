@@ -26,4 +26,14 @@ public class CategoryClientService : ICategoryClientService
     {
         return _apiClient.CreateCategoryAsync(request, cancellationToken);
     }
+
+    public Task<CategoryApiModel> UpdateCategoryAsync(short id, UpdateCategoryApiModel request, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.UpdateCategoryAsync(id, request, cancellationToken);
+    }
+
+    public Task DeleteCategoryAsync(short id, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.DeleteCategoryAsync(id, cancellationToken);
+    }
 }

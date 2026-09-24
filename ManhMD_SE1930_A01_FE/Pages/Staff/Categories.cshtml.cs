@@ -51,6 +51,24 @@ public class CategoriesModel : PageModel
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateCategoryInputModel
+    {
+        [Required(ErrorMessage = "Mã chuyên mục là bắt buộc.")]
+        public short CategoryId { get; set; }
+
+        [Required(ErrorMessage = "Tên chuyên mục là bắt buộc.")]
+        [StringLength(100, ErrorMessage = "Tên chuyên mục không được vượt quá 100 ký tự.")]
+        public string CategoryName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mô tả chuyên mục là bắt buộc.")]
+        [StringLength(250, ErrorMessage = "Mô tả chuyên mục không được vượt quá 250 ký tự.")]
+        public string CategoryDescription { get; set; } = string.Empty;
+
+        public short? ParentCategoryId { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
     public async Task OnGetAsync()
     {
         await LoadDataAsync();
@@ -125,6 +143,99 @@ public class CategoriesModel : PageModel
             {
                 success = false,
                 message = "Đã xảy ra lỗi không mong muốn trên hệ thống. Vui lòng thử lại sau."
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostUpdateAsync([FromBody] UpdateCategoryInputModel input, CancellationToken cancellationToken)
+    {
+        if (input == null)
+        {
+            return new JsonResult(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Vui lòng kiểm tra lại thông tin nhập liệu.",
+                errors = ValidationResponseHelper.ExtractModelStateErrors(ModelState)
+            });
+        }
+
+        try
+        {
+            var request = new UpdateCategoryApiModel
+            {
+                CategoryName = input.CategoryName.Trim(),
+                CategoryDescription = input.CategoryDescription.Trim(),
+                ParentCategoryId = input.ParentCategoryId,
+                IsActive = input.IsActive
+            };
+
+            var updatedCategory = await _categoryClientService.UpdateCategoryAsync(input.CategoryId, request, cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Cập nhật chuyên mục \"{updatedCategory.CategoryName}\" thành công.",
+                category = updatedCategory
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while updating category: {Message}", ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể cập nhật chuyên mục do lỗi dữ liệu từ hệ thống.",
+                errors = ValidationResponseHelper.NormalizeApiErrors(ex.ValidationErrors)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while updating category.");
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi không mong muốn trên hệ thống. Vui lòng thử lại sau."
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(short id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _categoryClientService.DeleteCategoryAsync(id, cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = "Xóa chuyên mục thành công."
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while deleting category: {Message}", ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể xóa chuyên mục do ràng buộc dữ liệu."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while deleting category.");
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi không mong muốn trên hệ thống khi xóa chuyên mục."
             });
         }
     }

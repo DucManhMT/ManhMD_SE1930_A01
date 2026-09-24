@@ -8,4 +8,6 @@ public interface ICategoryService
     IQueryable<CategoryDto> GetQueryable(bool isStaff = false);
     Task<CategoryDto?> GetByIdAsync(short id, bool isStaff = false, CancellationToken cancellationToken = default);
     Task<CategoryDto> CreateAsync(CreateCategoryRequestDto request, CancellationToken cancellationToken = default);
+    Task<CategoryDto> UpdateAsync(short id, UpdateCategoryRequestDto request, CancellationToken cancellationToken = default);
+    Task DeleteAsync(short id, CancellationToken cancellationToken = default);
 }

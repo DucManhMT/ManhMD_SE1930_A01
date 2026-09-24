@@ -319,4 +319,254 @@ public class CategoryManagementTests : IClassFixture<WebApplicationFactory<Progr
         });
         Assert.Equal(HttpStatusCode.Forbidden, lecturerResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task FUN009_Criterion_01_Category_With_Articles_Cannot_Change_Parent()
+    {
+        var client = CreateStaffClient();
+        short catId;
+
+        // 1. Tạo category có bài viết
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var cat = new Category
+            {
+                CategoryName = $"CatArt_{Guid.NewGuid():N}"[..20],
+                CategoryDescription = "Testing parent change restriction",
+                ParentCategoryID = null,
+                IsActive = true
+            };
+            db.Categories.Add(cat);
+            await db.SaveChangesAsync();
+            catId = cat.CategoryID;
+
+            var article = new NewsArticle
+            {
+                NewsArticleID = $"TEST_AR_{Guid.NewGuid():N}"[..20],
+                NewsTitle = "Parent Restriction Article",
+                Headline = "Testing Parent Change",
+                CreatedDate = DateTime.UtcNow,
+                NewsContent = "Content",
+                NewsSource = "FUNews",
+                CategoryID = catId,
+                NewsStatus = true,
+                CreatedByID = 1
+            };
+            db.NewsArticles.Add(article);
+            await db.SaveChangesAsync();
+        }
+
+        // 2. Cố gắng đổi parent từ null sang 1 -> Bị chặn với 400 Bad Request
+        var changeParentResponse = await client.PutAsJsonAsync($"api/category/{catId}", new UpdateCategoryRequestDto
+        {
+            CategoryName = "Updated Name",
+            CategoryDescription = "Updated Desc",
+            ParentCategoryId = 1, // Đổi parent
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, changeParentResponse.StatusCode);
+
+        // 3. Giữ nguyên parent (null) và đổi tên/mô tả -> Thành công (200 OK)
+        var sameParentResponse = await client.PutAsJsonAsync($"api/category/{catId}", new UpdateCategoryRequestDto
+        {
+            CategoryName = "Updated Name Same Parent",
+            CategoryDescription = "Updated Desc",
+            ParentCategoryId = null, // Giữ nguyên parent
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.OK, sameParentResponse.StatusCode);
+
+        var updated = await sameParentResponse.Content.ReadFromJsonAsync<CategoryDto>();
+        Assert.NotNull(updated);
+        Assert.Equal("Updated Name Same Parent", updated.CategoryName);
+    }
+
+    [Fact]
+    public async Task FUN009_Criterion_02_Category_With_Articles_Or_Children_Cannot_Be_Deleted()
+    {
+        var client = CreateStaffClient();
+        short parentCatId;
+        short childCatId;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+
+            // Tạo parent và child category
+            var parentCat = new Category
+            {
+                CategoryName = $"ParCat_{Guid.NewGuid():N}"[..20],
+                CategoryDescription = "Parent category for delete test",
+                ParentCategoryID = null,
+                IsActive = true
+            };
+            db.Categories.Add(parentCat);
+            await db.SaveChangesAsync();
+            parentCatId = parentCat.CategoryID;
+
+            var childCat = new Category
+            {
+                CategoryName = $"ChiCat_{Guid.NewGuid():N}"[..20],
+                CategoryDescription = "Child category for delete test",
+                ParentCategoryID = parentCatId,
+                IsActive = true
+            };
+            db.Categories.Add(childCat);
+            await db.SaveChangesAsync();
+            childCatId = childCat.CategoryID;
+
+            // Gắn bài viết vào child category
+            var article = new NewsArticle
+            {
+                NewsArticleID = $"TEST_DEL_{Guid.NewGuid():N}"[..20],
+                NewsTitle = "Delete Restriction Article",
+                Headline = "Testing Delete",
+                CreatedDate = DateTime.UtcNow,
+                NewsContent = "Content",
+                NewsSource = "FUNews",
+                CategoryID = childCatId,
+                NewsStatus = true,
+                CreatedByID = 1
+            };
+            db.NewsArticles.Add(article);
+            await db.SaveChangesAsync();
+        }
+
+        // 1. Xóa parent category (đang có child) -> Bị chặn với 409 Conflict
+        var deleteParentResponse = await client.DeleteAsync($"api/category/{parentCatId}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteParentResponse.StatusCode);
+
+        // 2. Xóa child category (đang có article) -> Bị chặn với 409 Conflict
+        var deleteChildResponse = await client.DeleteAsync($"api/category/{childCatId}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteChildResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FUN009_Criterion_03_Duplicate_Name_And_Self_Parent_Blocked_On_Update()
+    {
+        var client = CreateStaffClient();
+        short catAId;
+        short catBId;
+        var nameA = $"CatA_{Guid.NewGuid():N}"[..20];
+        var nameB = $"CatB_{Guid.NewGuid():N}"[..20];
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+
+            var catA = new Category
+            {
+                CategoryName = nameA,
+                CategoryDescription = "Cat A desc",
+                ParentCategoryID = null,
+                IsActive = true
+            };
+            var catB = new Category
+            {
+                CategoryName = nameB,
+                CategoryDescription = "Cat B desc",
+                ParentCategoryID = null,
+                IsActive = true
+            };
+
+            db.Categories.AddRange(catA, catB);
+            await db.SaveChangesAsync();
+            catAId = catA.CategoryID;
+            catBId = catB.CategoryID;
+        }
+
+        // 1. Cập nhật Cat B đổi tên thành Cat A (cùng parent null) -> Bị chặn 400 Bad Request
+        var duplicateResponse = await client.PutAsJsonAsync($"api/category/{catBId}", new UpdateCategoryRequestDto
+        {
+            CategoryName = nameA,
+            CategoryDescription = "Updated Desc",
+            ParentCategoryId = null,
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, duplicateResponse.StatusCode);
+
+        // 2. Cập nhật Cat B chọn chính mình làm danh mục cha -> Bị chặn 400 Bad Request
+        var selfParentResponse = await client.PutAsJsonAsync($"api/category/{catBId}", new UpdateCategoryRequestDto
+        {
+            CategoryName = nameB,
+            CategoryDescription = "Updated Desc",
+            ParentCategoryId = catBId,
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, selfParentResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FUN009_Criterion_04_And_05_Empty_Category_Can_Be_Deleted_Without_Cascade()
+    {
+        var client = CreateStaffClient();
+        short emptyCatId;
+
+        // 1. Tạo category trống (không bài viết, không chuyên mục con)
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+
+            var emptyCat = new Category
+            {
+                CategoryName = $"EmptyCat_{Guid.NewGuid():N}"[..20],
+                CategoryDescription = "Empty category to be deleted",
+                ParentCategoryID = null,
+                IsActive = true
+            };
+            db.Categories.Add(emptyCat);
+            await db.SaveChangesAsync();
+            emptyCatId = emptyCat.CategoryID;
+        }
+
+        // 2. Staff xóa category trống -> Thành công 204 NoContent
+        var deleteResponse = await client.DeleteAsync($"api/category/{emptyCatId}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        // 3. Kiểm tra CSDL: category đã bị xóa hoàn toàn
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<FUNewsDbContext>();
+            var exists = await db.Categories.AnyAsync(c => c.CategoryID == emptyCatId);
+            Assert.False(exists);
+        }
+
+        // 4. Xóa category không tồn tại -> 404 NotFound
+        var notFoundResponse = await client.DeleteAsync("api/category/9999");
+        Assert.Equal(HttpStatusCode.NotFound, notFoundResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FUN009_Role_Authorization_Enforced_For_Update_And_Delete()
+    {
+        var anonymousClient = _factory.CreateClient();
+        var lecturerClient = CreateLecturerClient();
+
+        // 1. Anonymous PUT -> 401 Unauthorized
+        var anonPut = await anonymousClient.PutAsJsonAsync("api/category/1", new UpdateCategoryRequestDto
+        {
+            CategoryName = "Anon Update",
+            CategoryDescription = "Desc",
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, anonPut.StatusCode);
+
+        // 2. Lecturer PUT -> 403 Forbidden
+        var lecturerPut = await lecturerClient.PutAsJsonAsync("api/category/1", new UpdateCategoryRequestDto
+        {
+            CategoryName = "Lecturer Update",
+            CategoryDescription = "Desc",
+            IsActive = true
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, lecturerPut.StatusCode);
+
+        // 3. Anonymous DELETE -> 401 Unauthorized
+        var anonDelete = await anonymousClient.DeleteAsync("api/category/1");
+        Assert.Equal(HttpStatusCode.Unauthorized, anonDelete.StatusCode);
+
+        // 4. Lecturer DELETE -> 403 Forbidden
+        var lecturerDelete = await lecturerClient.DeleteAsync("api/category/1");
+        Assert.Equal(HttpStatusCode.Forbidden, lecturerDelete.StatusCode);
+    }
 }

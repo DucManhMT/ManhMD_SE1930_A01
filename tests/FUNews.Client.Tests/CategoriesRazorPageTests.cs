@@ -108,6 +108,62 @@ public class CategoriesRazorPageTests
             Categories.Add(newCategory);
             return Task.FromResult(newCategory);
         }
+
+        public bool ShouldFailUpdate { get; set; }
+        public string? FailUpdateMessage { get; set; }
+        public Dictionary<string, string[]>? FailUpdateErrors { get; set; }
+
+        public bool ShouldFailDelete { get; set; }
+        public string? FailDeleteMessage { get; set; }
+
+        public Task<CategoryApiModel> UpdateCategoryAsync(short id, UpdateCategoryApiModel request, CancellationToken cancellationToken = default)
+        {
+            if (ShouldFailUpdate)
+            {
+                var problem = new ApiProblemDetails
+                {
+                    Title = "Dữ liệu không hợp lệ",
+                    Detail = FailUpdateMessage ?? "Lỗi cập nhật chuyên mục",
+                    Errors = FailUpdateErrors
+                };
+                throw new FUNewsApiException(System.Net.HttpStatusCode.BadRequest, FailUpdateMessage ?? "Lỗi cập nhật chuyên mục", problem);
+            }
+
+            var cat = Categories.FirstOrDefault(c => c.CategoryId == id);
+            if (cat == null)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, "Không tìm thấy chuyên mục");
+            }
+
+            cat.CategoryName = request.CategoryName;
+            cat.CategoryDescription = request.CategoryDescription;
+            cat.ParentCategoryId = request.ParentCategoryId;
+            cat.ParentCategoryName = request.ParentCategoryId.HasValue
+                ? Categories.FirstOrDefault(c => c.CategoryId == request.ParentCategoryId.Value)?.CategoryName
+                : null;
+            if (request.IsActive.HasValue)
+            {
+                cat.IsActive = request.IsActive.Value;
+            }
+
+            return Task.FromResult(cat);
+        }
+
+        public Task DeleteCategoryAsync(short id, CancellationToken cancellationToken = default)
+        {
+            if (ShouldFailDelete)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.Conflict, FailDeleteMessage ?? "Không thể xóa chuyên mục");
+            }
+
+            var cat = Categories.FirstOrDefault(c => c.CategoryId == id);
+            if (cat != null)
+            {
+                Categories.Remove(cat);
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private static CategoriesModel CreatePageModel(FakeCategoryClientService fakeService)
@@ -279,5 +335,110 @@ public class CategoriesRazorPageTests
         var errors = GetPropertyValue(jsonResult.Value, "errors") as Dictionary<string, string[]>;
         Assert.NotNull(errors);
         Assert.True(errors.ContainsKey("CategoryName"));
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WithValidData_ReturnsSuccessJson()
+    {
+        var fakeService = new FakeCategoryClientService();
+        var pageModel = CreatePageModel(fakeService);
+
+        var input = new CategoriesModel.UpdateCategoryInputModel
+        {
+            CategoryId = 1,
+            CategoryName = "Tin trong nước đổi mới",
+            CategoryDescription = "Mô tả mới",
+            ParentCategoryId = null,
+            IsActive = true
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var success = GetPropertyValue(jsonResult.Value, "success");
+        Assert.Equal(true, success);
+
+        var updated = GetPropertyValue(jsonResult.Value, "category") as CategoryApiModel;
+        Assert.NotNull(updated);
+        Assert.Equal("Tin trong nước đổi mới", updated.CategoryName);
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WithDuplicateName_ReturnsErrorJson()
+    {
+        var fakeService = new FakeCategoryClientService
+        {
+            ShouldFailUpdate = true,
+            FailUpdateMessage = "Tên chuyên mục đã tồn tại trong cùng danh mục cha.",
+            FailUpdateErrors = new Dictionary<string, string[]>
+            {
+                { "CategoryName", new[] { "Tên chuyên mục đã tồn tại trong cùng danh mục cha." } }
+            }
+        };
+
+        var pageModel = CreatePageModel(fakeService);
+
+        var input = new CategoriesModel.UpdateCategoryInputModel
+        {
+            CategoryId = 2,
+            CategoryName = "Tin trong nước",
+            CategoryDescription = "Mô tả",
+            ParentCategoryId = null,
+            IsActive = true
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var success = GetPropertyValue(jsonResult.Value, "success");
+        Assert.Equal(false, success);
+
+        var message = GetPropertyValue(jsonResult.Value, "message") as string;
+        Assert.Equal("Tên chuyên mục đã tồn tại trong cùng danh mục cha.", message);
+    }
+
+    [Fact]
+    public async Task OnPostDeleteAsync_WhenSuccess_ReturnsSuccessJson()
+    {
+        var fakeService = new FakeCategoryClientService();
+        var pageModel = CreatePageModel(fakeService);
+
+        var result = await pageModel.OnPostDeleteAsync(1, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var success = GetPropertyValue(jsonResult.Value, "success");
+        Assert.Equal(true, success);
+
+        var message = GetPropertyValue(jsonResult.Value, "message") as string;
+        Assert.Contains("Xóa chuyên mục thành công", message);
+    }
+
+    [Fact]
+    public async Task OnPostDeleteAsync_WhenHasArticles_ReturnsConflictErrorJson()
+    {
+        var fakeService = new FakeCategoryClientService
+        {
+            ShouldFailDelete = true,
+            FailDeleteMessage = "Không thể xóa chuyên mục vì đang có bài viết liên kết."
+        };
+
+        var pageModel = CreatePageModel(fakeService);
+
+        var result = await pageModel.OnPostDeleteAsync(3, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var success = GetPropertyValue(jsonResult.Value, "success");
+        Assert.Equal(false, success);
+
+        var message = GetPropertyValue(jsonResult.Value, "message") as string;
+        Assert.Contains("Không thể xóa chuyên mục vì đang có bài viết liên kết", message);
     }
 }
