@@ -10,7 +10,7 @@ public class ArchitectureTests
     {
         var frontendAssemblies = new[]
         {
-            typeof(ManhMD_SE1930_A01_FE.Controllers.HomeController).Assembly,
+            typeof(ManhMD_SE1930_A01_FE.Pages.IndexModel).Assembly,
             typeof(FUNews.Client.BusinessLogic.ClientBusinessLogicMarker).Assembly,
             typeof(FUNews.Client.DataAccess.ClientDataAccessMarker).Assembly
         };
@@ -43,7 +43,7 @@ public class ArchitectureTests
     {
         var frontendAssemblies = new[]
         {
-            typeof(ManhMD_SE1930_A01_FE.Controllers.HomeController).Assembly,
+            typeof(ManhMD_SE1930_A01_FE.Pages.IndexModel).Assembly,
             typeof(FUNews.Client.BusinessLogic.ClientBusinessLogicMarker).Assembly,
             typeof(FUNews.Client.DataAccess.ClientDataAccessMarker).Assembly
         };

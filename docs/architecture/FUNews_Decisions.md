@@ -8,7 +8,7 @@ Các quyết định dưới đây cho phép AI tiếp tục triển khai mà kh
 | D02 | Tag có mô tả một bài so với junction table | Nhiều–nhiều theo NewsTag và mục quản lý liên kết |
 | D03 | Singleton | Configuration provider bất biến; DbContext Scoped |
 | D04 | FE 3 tầng | DataAccess FE là HTTP API adapters, không kết nối SQL |
-| D05 | MVC hay Razor Pages | MVC + Bootstrap 5; không sao chép cấu trúc Razor Pages Petlify |
+| D05 | MVC hay Razor Pages | Razor Pages + Bootstrap 5 theo yêu cầu người dùng; bảo đảm 3 tầng FE: PageModel -> Client.BusinessLogic -> Client.DataAccess -> BE API; AJAX modal dùng named handlers |
 | D06 | Tag management không ghi actor | Staff ghi; public/Lecturer chỉ metadata và bài Active dùng tag |
 | D07 | Staff ownership | Staff sửa/xóa mọi bài theo quyền quản lý; /mine và profile chỉ bản thân |
 | D08 | Category inactive ảnh hưởng tin | Public lọc NewsStatus=true; không tự ẩn bài Active chỉ vì category inactive. Tạo/đổi category chỉ chọn active; sửa bài cũ được giữ category inactive hiện tại |

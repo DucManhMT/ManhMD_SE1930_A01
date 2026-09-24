@@ -23,13 +23,13 @@ Dự án được phân tách thành 2 solution độc lập theo quy tắc 3 t�
 `Controller` → `Service` → `Repository` → `DAO` → `Scoped DbContext` → `SQL Server`
 
 ### Frontend (`ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`)
-- **Tầng Presentation (Web):** `ManhMD_SE1930_A01_FE` (ASP.NET Core MVC, Bootstrap 5, AJAX/Fetch)
+- **Tầng Presentation (Web):** `ManhMD_SE1930_A01_FE` (ASP.NET Core Razor Pages, Bootstrap 5, AJAX/Fetch)
 - **Tầng Business Logic:** `FUNews.Client.BusinessLogic` (Client Services, mapping kết quả API)
 - **Tầng Data Access:** `FUNews.Client.DataAccess` (Typed HttpClient API clients, HTTP transport models)
 - **Kiểm thử Frontend:** `tests/FUNews.Client.Tests` (xUnit unit & architecture boundary tests)
 
 *Nguyên tắc luồng Frontend:*  
-`Browser Fetch` → `MVC Controller` → `Client Service` → `Typed HttpClient` → `Backend API`  
+`Browser Fetch` → `Razor Page (PageModel)` → `Client Service` → `Typed HttpClient` → `Backend API`  
 *(Đảm bảo Frontend hoàn toàn không tham chiếu và không kết nối trực tiếp đến Entity Framework hoặc Database)*
 
 ---
