@@ -20,7 +20,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-008 | Danh sách và thêm danh mục | 004 | DONE |
 | FUN-009 | Sửa trạng thái và xóa danh mục | 008 | DONE |
 | FUN-010 | Quản lý tag | 004 | DONE |
-| FUN-011 | Danh sách quản lý bài viết | 008,010 | TODO |
+| FUN-011 | Danh sách quản lý bài viết | 008,010 | DONE |
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | TODO |
 | FUN-013 | Sửa và xóa bài viết | 012 | TODO |
 | FUN-014 | Nhân bản bài viết | 013 | TODO |
@@ -465,7 +465,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-011 — Danh sách quản lý bài viết
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 008,010
 - Actor: Staff
 - Điểm vào/phạm vi file: /staff/news; /api/news
@@ -482,10 +482,24 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE: [NewsController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/NewsController.cs), [NewsArticleService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs), [NewsArticleMappingHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/NewsArticleMappingHelper.cs).
+  - FE: [News.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml), [News.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml.cs), [ODataFilterHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Helpers/ODataFilterHelper.cs).
+  - Tests: [NewsArticleManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/NewsArticleManagementTests.cs), [NewsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/NewsRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 80/80 Passed (100%) — gồm 4 integration test cases mới cho FUN-011.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 70/70 Passed (100%) — gồm 6 unit test cases mới cho BuildNewsQuery và NewsModel PageModel.
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria:
+    1. API áp role scope trước OData: Khách/Anonymous/Lecturer gọi `GET /api/news` bị cưỡng chế `NewsStatus == true` từ trước khi áp dụng OData filter; cố tình truyền OData filter `newsStatus eq false` vẫn nhận danh sách rỗng (không thể bypass). Staff/Admin được xem toàn bộ bài viết (Active và Inactive).
+    2. Category/author name đúng: `NewsArticleMappingHelper.ProjectToDto` JOIN chính xác `Category.CategoryName` và `CreatedBy.AccountName`; không bị rỗng hay sai lệch.
+    3. Date inclusive: Bộ lọc khoảng ngày tự động ánh xạ StartDate từ `00:00:00Z` và EndDate đến `< EndDate + 1 ngày 00:00:00Z`, đảm bảo bao trọn vẹn toàn bộ các bài viết tạo trong ngày kết thúc.
+    4. Sort ổn định: Áp dụng OData ordering kết hợp `createdDate desc, newsArticleId desc` (hoặc title asc/desc kết hợp newsArticleId desc) đảm bảo thứ tự phân trang ổn định tuyệt đối giữa các trang.
+    5. Không tính count sau top: OData `$count=true` tính trên tập filter (trước khi `$top` và `$skip` được áp dụng), bảo đảm tổng số bài viết phản ánh đúng toàn bộ kết quả phù hợp.
+    6. UI không có CTA giả: Màn hình quản lý tin tức của Staff `/staff/news` không chứa các nút bấm giả mạo; có thanh thông báo lộ trình rõ ràng về chức năng Thêm [FUN-012], Sửa/Xóa [FUN-013], Nhân bản [FUN-014]. Nút "Chi tiết" kết nối modal xem chi tiết bài viết AJAX hoạt động 100% thật.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-012 — Tạo bài và gắn nhiều tags
 
