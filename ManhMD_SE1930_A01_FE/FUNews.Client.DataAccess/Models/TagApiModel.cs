@@ -12,4 +12,7 @@ public class TagApiModel
 
     [JsonPropertyName("note")]
     public string? Note { get; set; }
+
+    [JsonPropertyName("articleCount")]
+    public int ArticleCount { get; set; }
 }

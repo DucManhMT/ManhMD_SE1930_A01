@@ -47,6 +47,16 @@ public class TagRepository : ITagRepository
         return _tagDao.HasArticlesAsync(id, cancellationToken);
     }
 
+    public Task<Tag?> GetByIdWithNewsTagsAsync(int id, bool asNoTracking = false, CancellationToken cancellationToken = default)
+    {
+        return _tagDao.GetByIdWithNewsTagsAsync(id, asNoTracking, cancellationToken);
+    }
+
+    public Task<List<NewsArticle>> GetArticlesByTagAsync(int tagId, bool? activeOnly = null, CancellationToken cancellationToken = default)
+    {
+        return _tagDao.GetArticlesByTagAsync(tagId, activeOnly, cancellationToken);
+    }
+
     public Task<Tag> AddAsync(Tag tag, CancellationToken cancellationToken = default)
     {
         return _tagDao.AddAsync(tag, cancellationToken);

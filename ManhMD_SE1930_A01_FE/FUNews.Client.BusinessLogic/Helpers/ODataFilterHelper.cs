@@ -84,4 +84,29 @@ public static class ODataFilterHelper
 
         return string.Join("&", queryParts);
     }
+
+    public static string BuildTagsQuery(string? searchTerm, int top = 100)
+    {
+        var filters = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var safeTerm = EscapeStringLiteral(searchTerm);
+            filters.Add($"(contains(tagName,'{safeTerm}') or (note ne null and contains(note,'{safeTerm}')))");
+        }
+
+        var queryParts = new List<string>
+        {
+            "$orderby=tagId desc",
+            "$count=true",
+            $"$top={top}"
+        };
+
+        if (filters.Count > 0)
+        {
+            queryParts.Insert(0, $"$filter={string.Join(" and ", filters)}");
+        }
+
+        return string.Join("&", queryParts);
+    }
 }

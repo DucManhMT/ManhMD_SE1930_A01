@@ -77,6 +77,55 @@ public class FUNewsApiClient : IFUNewsApiClient
         return GetSingleAsync<TagApiModel>($"api/tag/{id}", cancellationToken);
     }
 
+    public async Task<TagApiModel> CreateTagAsync(CreateTagApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/tag", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<TagApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
+    public async Task<TagApiModel> UpdateTagAsync(int id, UpdateTagApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PutAsJsonAsync($"api/tag/{id}", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<TagApiModel>(JsonOptions, cancellationToken);
+        return result ?? throw new FUNewsApiException(response.StatusCode, "Không nhận được phản hồi từ máy chủ.");
+    }
+
+    public async Task DeleteTagAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"api/tag/{id}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+    }
+
+    public async Task<List<NewsArticleApiModel>> GetNewsArticlesByTagAsync(int tagId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"api/tag/{tagId}/news", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
+        return result ?? new List<NewsArticleApiModel>();
+    }
+
     public Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news" : $"api/news{FormatQuery(odataQuery)}";

@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Models;
 using FUNews.BusinessLogic.Services;
 using ManhMD_SE1930_A01_BE.OData;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,8 @@ public class TagController : ControllerBase
     [AllowAnonymous]
     public ActionResult<ODataResponse<TagDto>> Get(ODataQueryOptions<TagDto> queryOptions)
     {
-        var result = ODataQueryHelper.ApplyOData(_tagService.GetQueryable(), queryOptions);
+        bool isStaff = User.IsInRole("Staff");
+        var result = ODataQueryHelper.ApplyOData(_tagService.GetQueryable(isStaff), queryOptions);
         return Ok(result);
     }
 
@@ -30,7 +32,8 @@ public class TagController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<TagDto>> GetById(int id, CancellationToken cancellationToken)
     {
-        var tag = await _tagService.GetByIdAsync(id, cancellationToken);
+        bool isStaff = User.IsInRole("Staff");
+        var tag = await _tagService.GetByIdAsync(id, isStaff, cancellationToken);
         if (tag == null)
         {
             return NotFound(new ProblemDetails
@@ -44,39 +47,46 @@ public class TagController : ControllerBase
         return Ok(tag);
     }
 
+    [HttpGet("{id:int}/news")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<NewsArticleDto>>> GetNewsByTag(int id, CancellationToken cancellationToken)
+    {
+        bool isStaff = User.IsInRole("Staff");
+        var articles = await _tagService.GetArticlesByTagAsync(id, isStaff, cancellationToken);
+        return Ok(articles);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Staff")]
-    public IActionResult Create()
+    public async Task<ActionResult<TagDto>> Create([FromBody] CreateTagRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (!ModelState.IsValid)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng tạo thẻ thuộc phạm vi task FUN-010."
-        });
+            return ValidationProblem(ModelState);
+        }
+
+        var created = await _tagService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.TagId }, created);
     }
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Update(int id)
+    public async Task<ActionResult<TagDto>> Update(int id, [FromBody] UpdateTagRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (!ModelState.IsValid)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng cập nhật thẻ thuộc phạm vi task FUN-010."
-        });
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await _tagService.UpdateAsync(id, request, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
-        {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng xóa thẻ thuộc phạm vi task FUN-010."
-        });
+        await _tagService.DeleteAsync(id, cancellationToken);
+        return NoContent();
     }
 }

@@ -68,6 +68,42 @@ public class TagDAO
             .AnyAsync(nt => nt.TagID == id, cancellationToken);
     }
 
+    public async Task<Tag?> GetByIdWithNewsTagsAsync(int id, bool asNoTracking = false, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Tags
+            .Include(t => t.NewsTags)
+                .ThenInclude(nt => nt.NewsArticle);
+
+        if (asNoTracking)
+        {
+            return await query.AsNoTracking().FirstOrDefaultAsync(t => t.TagID == id, cancellationToken);
+        }
+
+        return await query.FirstOrDefaultAsync(t => t.TagID == id, cancellationToken);
+    }
+
+    public async Task<List<NewsArticle>> GetArticlesByTagAsync(int tagId, bool? activeOnly = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.NewsArticles
+            .AsNoTracking()
+            .Include(a => a.Category)
+            .Include(a => a.CreatedBy)
+            .Include(a => a.UpdatedBy)
+            .Include(a => a.NewsTags)
+                .ThenInclude(nt => nt.Tag)
+            .Where(a => a.NewsTags.Any(nt => nt.TagID == tagId));
+
+        if (activeOnly == true)
+        {
+            query = query.Where(a => a.NewsStatus == true);
+        }
+
+        return await query
+            .OrderByDescending(a => a.CreatedDate)
+            .ThenByDescending(a => a.NewsArticleID)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Tag> AddAsync(Tag tag, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tag);

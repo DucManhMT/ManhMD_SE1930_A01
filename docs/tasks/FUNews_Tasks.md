@@ -19,7 +19,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-007 | Hồ sơ và đổi mật khẩu | 004 | DONE |
 | FUN-008 | Danh sách và thêm danh mục | 004 | DONE |
 | FUN-009 | Sửa trạng thái và xóa danh mục | 008 | DONE |
-| FUN-010 | Quản lý tag | 004 | TODO |
+| FUN-010 | Quản lý tag | 004 | DONE |
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | TODO |
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | TODO |
 | FUN-013 | Sửa và xóa bài viết | 012 | TODO |
@@ -423,10 +423,10 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-010 — Quản lý tag
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 004
 - Actor: Staff
-- Điểm vào/phạm vi file: /staff/tags; /api/tag
+- Điểm vào/phạm vi file: /staff/tags; /api/tag; /api/tag/{id}/news
 - Mục tiêu: CRUD/search TagName, Note; modal; xem articles sử dụng tag.
 
 ### Acceptance criteria
@@ -440,10 +440,28 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Models & DTOs: [CreateTagRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/CreateTagRequestDto.cs), [UpdateTagRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/UpdateTagRequestDto.cs), [TagDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/DTOs/TagDto.cs).
+  - BE Helpers & DAOs: [TagValidationHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/TagValidationHelper.cs), [TagMappingHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/TagMappingHelper.cs), [NewsArticleMappingHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/NewsArticleMappingHelper.cs), [TagDAO.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/DAOs/TagDAO.cs), [ITagRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/ITagRepository.cs), [TagRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/TagRepository.cs).
+  - BE Services & Controllers: [ITagService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/ITagService.cs), [TagService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/TagService.cs), [TagController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/TagController.cs).
+  - FE DataAccess Models & Clients: [TagApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/TagApiModel.cs), [CreateTagApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/CreateTagApiModel.cs), [UpdateTagApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/UpdateTagApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic & Helpers: [ODataFilterHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Helpers/ODataFilterHelper.cs), [ITagClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/ITagClientService.cs), [TagClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/TagClientService.cs).
+  - FE Presentation (Razor Page & UI): [Tags.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Tags.cshtml), [Tags.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/Tags.cshtml.cs).
+  - Tests: [TagManagementTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/TagManagementTests.cs), [TagsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/TagsRazorPageTests.cs), [AuthenticationAndRoleTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/AuthenticationAndRoleTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 74/74 Passed (100%) — gồm 5 test cases tích hợp cho FUN-010.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 62/62 Passed (100%) — gồm 9 unit tests cho handler CRUD, search và xem bài viết.
+- UI/SQL/API evidence:
+  - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
+    1. Tên unique sau trim: `TagName` (Required, <=50), `Note` (Optional, <=400). Khi tạo/sửa thẻ, tên được tự động trim khoảng trắng đầu cuối; kiểm tra không phân biệt hoa thường qua `IsNameUniqueAsync` và Unique Index DB `UQ_Tag_TagName`. Trùng tên trả về 400 Bad Request.
+    2. Tag đang được dùng không xóa: Gọi xóa tag đang có liên kết với bài viết qua bảng `NewsTag` trả về HTTP 409 Conflict. Trên giao diện modal Xóa thẻ tin, hệ thống tự động kiểm tra số lượng bài viết, hiển thị cảnh báo vi phạm ràng buộc và vô hiệu hóa nút "Xác nhận xóa".
+    3. List article join đúng: Endpoint `GET /api/tag/{id}/news` join bảng `NewsTag` với `NewsArticle` để lấy toàn bộ thông tin bài viết gắn thẻ (mã bài, tiêu đề, chuyên mục, tác giả, ngày tạo, trạng thái). Trên UI có nút "Xem bài viết" mở modal danh sách bài viết trực tiếp qua AJAX.
+    4. Public chỉ Active: Khách/Anonymous gọi `GET /api/tag/{id}/news` chỉ nhận được danh sách bài viết có `NewsStatus == true`; `ArticleCount` của thẻ khi gọi qua API công khai không làm lộ số lượng bài viết tạm ẩn (Inactive). Staff được quyền xem toàn bộ cả bài Active và Inactive.
+    5. No orphan NewsTag: Chỉ cho phép xóa thẻ khi số lượng bài viết liên kết là 0 (`HasArticlesAsync == false`), bảo đảm toàn vẹn CSDL và không bao giờ để lại bản ghi mồ côi (orphan) trong bảng `NewsTag`.
+    6. Lỗi và empty state rõ: Kiểm tra validation cả client và server, hiển thị inline feedback, form giữ nguyên dữ liệu khi gặp lỗi; hiển thị empty state khi danh sách thẻ hoặc danh sách bài viết gắn thẻ rỗng.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-011 — Danh sách quản lý bài viết
 

@@ -239,9 +239,11 @@ public class AuthenticationAndRoleTests : IClassFixture<WebApplicationFactory<Pr
         Assert.NotEqual(HttpStatusCode.Forbidden, categoryPost.StatusCode);
         Assert.True(categoryPost.StatusCode == HttpStatusCode.BadRequest || categoryPost.StatusCode == HttpStatusCode.NotImplemented);
 
-        // 3. Staff gọi POST /api/tag -> Trả 501 (vượt qua auth check)
+        // 3. Staff gọi POST /api/tag -> Được ủy quyền (vượt qua auth check, không bị 401 hoặc 403)
         var tagPost = await staffClient.PostAsJsonAsync("api/tag", new { });
-        Assert.Equal(HttpStatusCode.NotImplemented, tagPost.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Unauthorized, tagPost.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, tagPost.StatusCode);
+        Assert.True(tagPost.StatusCode == HttpStatusCode.BadRequest || tagPost.StatusCode == HttpStatusCode.NotImplemented);
 
         // 4. Staff gọi POST /api/news -> Trả 501 (vượt qua auth check)
         var newsPost = await staffClient.PostAsJsonAsync("api/news", new { });
