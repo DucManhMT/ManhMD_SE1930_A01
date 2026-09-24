@@ -137,6 +137,20 @@ public class FUNewsApiClient : IFUNewsApiClient
         return GetSingleAsync<NewsArticleApiModel>($"api/news/{id}", cancellationToken);
     }
 
+    public async Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync("api/news", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var created = await response.Content.ReadFromJsonAsync<NewsArticleApiModel>(JsonOptions, cancellationToken);
+        return created ?? throw new InvalidOperationException("Máy chủ không trả về dữ liệu bài viết vừa tạo.");
+    }
+
     public Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/account" : $"api/account{FormatQuery(odataQuery)}";

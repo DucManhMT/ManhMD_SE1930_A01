@@ -1,6 +1,7 @@
 using FUNews.DataAccess.Context;
 using FUNews.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FUNews.DataAccess.DAOs;
 
@@ -56,6 +57,56 @@ public class NewsArticleDAO
         await _context.NewsArticles.AddAsync(article, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return article;
+    }
+
+    public async Task<NewsArticle> CreateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(article);
+
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        }
+
+        try
+        {
+            await _context.NewsArticles.AddAsync(article, cancellationToken);
+
+            var distinctTagIds = tagIds?.Distinct().ToList() ?? new List<int>();
+            foreach (var tagId in distinctTagIds)
+            {
+                await _context.NewsTags.AddAsync(new NewsTag
+                {
+                    NewsArticleID = article.NewsArticleID,
+                    TagID = tagId
+                }, cancellationToken);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return article;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
     }
 
     public async Task<NewsArticle> UpdateAsync(NewsArticle article, CancellationToken cancellationToken = default)

@@ -21,7 +21,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-009 | Sửa trạng thái và xóa danh mục | 008 | DONE |
 | FUN-010 | Quản lý tag | 004 | DONE |
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | DONE |
-| FUN-012 | Tạo bài và gắn nhiều tags | 011 | TODO |
+| FUN-012 | Tạo bài và gắn nhiều tags | 011 | DONE |
 | FUN-013 | Sửa và xóa bài viết | 012 | TODO |
 | FUN-014 | Nhân bản bài viết | 013 | TODO |
 | FUN-015 | Lịch sử bài do mình tạo | 013 | TODO |
@@ -503,7 +503,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-012 — Tạo bài và gắn nhiều tags
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 011
 - Actor: Staff
 - Điểm vào/phạm vi file: Modal tại /staff/news; POST /api/news
@@ -521,10 +521,29 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - BE Models & Validation: [CreateNewsArticleRequestDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Models/CreateNewsArticleRequestDto.cs), [NewsArticleValidationHelper.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Helpers/NewsArticleValidationHelper.cs).
+  - BE DAOs & Repositories: [SqlSequenceService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Sequences/SqlSequenceService.cs), [NewsArticleDAO.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/DAOs/NewsArticleDAO.cs), [INewsArticleRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/INewsArticleRepository.cs), [NewsArticleRepository.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.DataAccess/Repositories/NewsArticleRepository.cs).
+  - BE Services & Controllers: [INewsArticleService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/INewsArticleService.cs), [NewsArticleService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs), [NewsController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/NewsController.cs).
+  - FE DataAccess Models & Clients: [CreateNewsArticleApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/CreateNewsArticleApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+  - FE BusinessLogic: [INewsClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/INewsClientService.cs), [NewsClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/NewsClientService.cs).
+  - FE Presentation (Razor Page & UI): [News.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml), [News.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml.cs).
+  - Tests: [NewsArticleCreationTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/NewsArticleCreationTests.cs), [AuthenticationAndRoleTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/AuthenticationAndRoleTests.cs), [NewsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/NewsRazorPageTests.cs).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Errors, 0 Warnings).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Errors, 0 Warnings).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 87/87 Passed (100%) — gồm 7 integration test cases mới cho FUN-012.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 73/73 Passed (100%) — gồm 3 unit test cases mới cho handler tạo bài viết.
+- UI/SQL/API evidence:
+  - Kiểm tra 7/7 acceptance criteria:
+    1. Actor/date do server gán: `CreatedByID` lấy tự động từ claims tài khoản Staff đăng nhập (`accountId` / `ClaimTypes.NameIdentifier`), `CreatedDate` gán thời gian hiện tại (`DateTime.Now` local Vietnam); request body từ client không chứa và không thể can thiệp hai trường này. `UpdatedByID` và `ModifiedDate` được giữ `null` khi tạo mới.
+    2. ID <=20 unique: Mã bài viết `NewsArticleID` sinh tự động qua SQL sequence `dbo.Seq_NewsArticleID` với tiền tố "N" (ví dụ: `N6`, `N7`), đảm bảo độ dài <= 20 ký tự và duy nhất tuyệt đối.
+    3. Validation lengths: `Headline` bắt buộc, độ dài tối đa 150 ký tự; `NewsTitle` tối đa 400 ký tự; `NewsContent` tối đa 4000 ký tự; `NewsSource` tối đa 400 ký tự. Vượt quá giới hạn hoặc thiếu headline trả về HTTP 400 Bad Request kèm message rõ ràng.
+    4. Category active: Kiểm tra `CategoryID` bắt buộc phải tồn tại trong CSDL và `IsActive == true`. Nếu chọn chuyên mục tạm ẩn hoặc không tồn tại, trả về HTTP 400 Bad Request ("Chuyên mục được chọn không tồn tại hoặc đã bị tạm ẩn."). Dropdown chọn chuyên mục trên UI modal tạo bài viết tự động chỉ hiển thị các chuyên mục đang hoạt động.
+    5. Tags tồn tại/distinct: Danh sách `TagIds` được tự động deduplicate để tránh lỗi trùng khóa chính kép `(NewsArticleID, TagID)` trong bảng `NewsTag`. Các thẻ được liên kết chính xác và lưu vào DB.
+    6. Một tag sai rollback toàn bộ: Xác thực toàn bộ danh sách `TagIds` trước khi lưu. Nếu bất kỳ TagID nào không tồn tại trong hệ thống, hệ thống ném ngoại lệ validation, hủy toàn bộ giao dịch, đảm bảo không có bài viết hay bản ghi `NewsTag` rác nào được chèn vào DB. Cấp repository sử dụng database transaction bảo đảm atomic insert.
+    7. Modal save AJAX và toast thật: Màn hình `/staff/news` cung cấp nút "Thêm bài viết mới" mở modal AJAX với đầy đủ các trường nhập liệu, bộ đếm ký tự trực quan thời gian thực, validation lỗi inline và alert. Khi gửi thành công: đóng modal, hiện Toast thông báo màu xanh lá, reset form, và chèn trực tiếp dòng bài viết mới vào đầu bảng danh sách với nút "Chi tiết" AJAX hoạt động ngay lập tức mà không cần reload trang.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-013 — Sửa và xóa bài viết
 

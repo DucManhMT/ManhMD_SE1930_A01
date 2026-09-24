@@ -42,6 +42,11 @@ public class NewsArticleRepository : INewsArticleRepository
         return _articleDao.AddAsync(article, cancellationToken);
     }
 
+    public Task<NewsArticle> CreateWithTagsAsync(NewsArticle article, IEnumerable<int> tagIds, CancellationToken cancellationToken = default)
+    {
+        return _articleDao.CreateWithTagsAsync(article, tagIds, cancellationToken);
+    }
+
     public Task<NewsArticle> UpdateAsync(NewsArticle article, CancellationToken cancellationToken = default)
     {
         return _articleDao.UpdateAsync(article, cancellationToken);

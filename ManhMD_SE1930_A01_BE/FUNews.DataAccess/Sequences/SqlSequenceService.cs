@@ -65,8 +65,17 @@ public class SqlSequenceService : ISqlSequenceService
             }
         }
 
-        var max = await _context.NewsArticles.CountAsync(cancellationToken);
-        return $"N{max + 1}";
+        var existingIds = await _context.NewsArticles.Select(a => a.NewsArticleID).ToListAsync(cancellationToken);
+        long maxNum = 0;
+        foreach (var id in existingIds)
+        {
+            var trimmed = id.TrimStart('N', 'n');
+            if (long.TryParse(trimmed, out var n) && n > maxNum)
+            {
+                maxNum = n;
+            }
+        }
+        return $"N{maxNum + 1}";
     }
 
     private async Task<T> ExecuteSequenceScalarAsync<T>(string sequenceName, CancellationToken cancellationToken)

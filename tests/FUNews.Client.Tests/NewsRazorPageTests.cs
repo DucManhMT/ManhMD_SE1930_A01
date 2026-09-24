@@ -46,6 +46,7 @@ public class NewsRazorPageTests
         };
 
         public bool ShouldFailGet { get; set; }
+        public bool ShouldFailCreate { get; set; }
 
         public Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
         {
@@ -65,6 +66,28 @@ public class NewsRazorPageTests
         {
             var art = Articles.FirstOrDefault(a => a.NewsArticleId == id);
             return Task.FromResult(art);
+        }
+
+        public Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default)
+        {
+            if (ShouldFailCreate)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.BadRequest, "Dữ liệu không hợp lệ.");
+            }
+
+            var created = new NewsArticleApiModel
+            {
+                NewsArticleId = $"N{Articles.Count + 1}",
+                NewsTitle = request.NewsTitle,
+                Headline = request.Headline,
+                NewsContent = request.NewsContent,
+                NewsSource = request.NewsSource,
+                CategoryId = request.CategoryId,
+                NewsStatus = request.NewsStatus ?? true,
+                CreatedDate = DateTime.Now
+            };
+            Articles.Add(created);
+            return Task.FromResult(created);
         }
     }
 
@@ -89,10 +112,33 @@ public class NewsRazorPageTests
         public Task DeleteCategoryAsync(short id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     }
 
-    private NewsModel CreatePageModel(INewsClientService newsService, ICategoryClientService? catService = null)
+    private class FakeTagClientService : ITagClientService
+    {
+        public Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new ODataEnvelope<TagApiModel>
+            {
+                Count = 2,
+                Value = new List<TagApiModel>
+                {
+                    new TagApiModel { TagId = 1, TagName = "AI" },
+                    new TagApiModel { TagId = 2, TagName = "DotNet" }
+                }
+            });
+        }
+
+        public Task<TagApiModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<TagApiModel?>(null);
+        public Task<TagApiModel> CreateTagAsync(CreateTagApiModel request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<TagApiModel> UpdateTagAsync(int id, UpdateTagApiModel request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task DeleteTagAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<List<NewsArticleApiModel>> GetArticlesByTagAsync(int tagId, CancellationToken cancellationToken = default) => Task.FromResult(new List<NewsArticleApiModel>());
+    }
+
+    private NewsModel CreatePageModel(INewsClientService newsService, ICategoryClientService? catService = null, ITagClientService? tagService = null)
     {
         catService ??= new FakeCategoryClientService();
-        var model = new NewsModel(newsService, catService, NullLogger<NewsModel>.Instance);
+        tagService ??= new FakeTagClientService();
+        var model = new NewsModel(newsService, catService, tagService, NullLogger<NewsModel>.Instance);
 
         var httpContext = new DefaultHttpContext();
         var modelState = new ModelStateDictionary();
@@ -219,5 +265,99 @@ public class NewsRazorPageTests
         var successProp = type.GetProperty("success");
         Assert.NotNull(successProp);
         Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+    }
+
+    [Fact]
+    public async Task OnPostCreateAsync_WithValidInput_ReturnsSuccessJson()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new CreateNewsArticleInputModel
+        {
+            Headline = "Tóm tắt bài viết mới",
+            NewsTitle = "Tiêu đề bài viết mới",
+            CategoryId = 1,
+            NewsStatus = true,
+            NewsSource = "FU News",
+            NewsContent = "Nội dung bài viết chi tiết",
+            TagIds = new List<int> { 1, 2 }
+        };
+
+        var result = await pageModel.OnPostCreateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        var articleProp = type.GetProperty("article");
+        Assert.NotNull(articleProp);
+        var created = articleProp.GetValue(jsonResult.Value) as NewsArticleApiModel;
+        Assert.NotNull(created);
+        Assert.Equal("Tiêu đề bài viết mới", created.NewsTitle);
+        Assert.Equal("Tóm tắt bài viết mới", created.Headline);
+        Assert.Equal((short)1, created.CategoryId);
+        Assert.True(created.NewsStatus);
+    }
+
+    [Fact]
+    public async Task OnPostCreateAsync_WithInvalidModelState_ReturnsValidationErrorJson()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+        pageModel.ModelState.AddModelError("Headline", "Tiêu đề tóm tắt (Headline) là bắt buộc.");
+
+        var input = new CreateNewsArticleInputModel
+        {
+            Headline = "",
+            CategoryId = 1
+        };
+
+        var result = await pageModel.OnPostCreateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var errorsProp = type.GetProperty("errors");
+        Assert.NotNull(errorsProp);
+        var errors = errorsProp.GetValue(jsonResult.Value) as IDictionary<string, string[]>;
+        Assert.NotNull(errors);
+        Assert.True(errors.ContainsKey("Headline") || errors.ContainsKey("headline"));
+    }
+
+    [Fact]
+    public async Task OnPostCreateAsync_WhenApiThrowsException_ReturnsNormalizedErrors()
+    {
+        var fakeNews = new FakeNewsClientService { ShouldFailCreate = true };
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new CreateNewsArticleInputModel
+        {
+            Headline = "Tóm tắt hợp lệ",
+            CategoryId = 1
+        };
+
+        var result = await pageModel.OnPostCreateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var msgProp = type.GetProperty("message");
+        Assert.NotNull(msgProp);
+        Assert.Contains("Dữ liệu không hợp lệ", msgProp.GetValue(jsonResult.Value)?.ToString());
     }
 }

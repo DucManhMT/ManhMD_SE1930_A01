@@ -21,4 +21,9 @@ public class NewsClientService : INewsClientService
     {
         return _apiClient.GetNewsArticleByIdAsync(id, cancellationToken);
     }
+
+    public Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.CreateNewsArticleAsync(request, cancellationToken);
+    }
 }

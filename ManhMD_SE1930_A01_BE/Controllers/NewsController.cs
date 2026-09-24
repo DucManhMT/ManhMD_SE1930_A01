@@ -1,4 +1,5 @@
 using FUNews.BusinessLogic.DTOs;
+using FUNews.BusinessLogic.Models;
 using FUNews.BusinessLogic.Services;
 using ManhMD_SE1930_A01_BE.OData;
 using Microsoft.AspNetCore.Authorization;
@@ -54,14 +55,31 @@ public class NewsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Staff")]
-    public IActionResult Create()
+    public async Task<ActionResult<NewsArticleDto>> Create([FromBody] CreateNewsArticleRequestDto request, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        if (request == null)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng tạo bài viết thuộc phạm vi task FUN-012."
-        });
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Yêu cầu không hợp lệ",
+                Detail = "Dữ liệu bài viết không được để trống."
+            });
+        }
+
+        var accountId = GetCurrentAccountId();
+        if (!accountId.HasValue)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Không xác định danh tính",
+                Detail = "Không tìm thấy thông tin tài khoản nhân viên hợp lệ từ phiên đăng nhập."
+            });
+        }
+
+        var created = await _newsService.CreateAsync(request, accountId.Value, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.NewsArticleId }, created);
     }
 
     [HttpPut("{id}")]
@@ -98,5 +116,12 @@ public class NewsController : ControllerBase
             Title = "Chưa triển khai",
             Detail = "Chức năng nhân bản bài viết thuộc phạm vi task FUN-014."
         });
+    }
+
+    private short? GetCurrentAccountId()
+    {
+        var claimVal = User.FindFirst("accountId")?.Value
+                       ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return short.TryParse(claimVal, out var id) ? id : null;
     }
 }

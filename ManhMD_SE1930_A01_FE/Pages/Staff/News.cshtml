@@ -36,6 +36,9 @@
             <p class="text-muted small mb-0">Tra cứu, lọc theo chuyên mục, tác giả, trạng thái và khoảng thời gian (Staff Only)</p>
         </div>
         <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+            <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm" id="btnOpenCreateNewsModal" data-bs-toggle="modal" data-bs-target="#modalCreateNews">
+                <i class="bi bi-plus-circle me-1"></i>Thêm bài viết mới
+            </button>
             <span class="badge bg-primary px-3 py-2 fs-6">
                 <i class="bi bi-shield-check me-1"></i>Khu vực Staff
             </span>
@@ -45,11 +48,33 @@
         </div>
     </div>
 
+    <!-- Container Toast thông báo nổi (Real Toast Notifications) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+        <div id="toastSuccess" class="toast align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                    <span id="toastSuccessMessage">Thao tác thành công.</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+        <div id="toastError" class="toast align-items-center text-bg-danger border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                    <span id="toastErrorMessage">Đã xảy ra lỗi.</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Thông báo lộ trình chức năng (AC 6: Không có CTA giả) -->
     <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between shadow-sm">
         <div class="small">
             <i class="bi bi-info-circle-fill me-2 fs-6 text-info"></i>
-            <span><strong>Tính năng hiện tại:</strong> Danh sách, tìm kiếm đa điều kiện, lọc khoảng ngày & phân trang ổn định. Các thao tác <em>Thêm bài viết mới [FUN-012]</em>, <em>Sửa & Xóa bài viết [FUN-013]</em>, <em>Nhân bản bài viết [FUN-014]</em> sẽ được kết nối ở các task kế tiếp.</span>
+            <span><strong>Tính năng hiện tại:</strong> Danh sách, tìm kiếm đa điều kiện, lọc khoảng ngày, phân trang ổn định & <em>Tạo bài viết mới kèm thẻ tin [FUN-012]</em>. Các thao tác <em>Sửa & Xóa bài viết [FUN-013]</em>, <em>Nhân bản bài viết [FUN-014]</em> sẽ được kết nối ở các task kế tiếp.</span>
         </div>
     </div>
 
@@ -443,12 +468,177 @@
     </div>
 </div>
 
+<!-- ======================================================== -->
+<!-- MODAL: TẠO MỚI BÀI VIẾT TIN TỨC (AJAX - FUN-012)         -->
+<!-- ======================================================== -->
+<div class="modal fade" id="modalCreateNews" tabindex="-1" aria-labelledby="modalCreateNewsLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title h6 fw-bold mb-0" id="modalCreateNewsLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Thêm bài viết tin tức mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnCloseCreateNewsModal"></button>
+            </div>
+            <form id="formCreateNews" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <!-- Alert thông báo lỗi tổng quan -->
+                    <div class="alert alert-danger d-none py-2 mb-3" id="createNewsAlert" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="createNewsAlertText"></span>
+                    </div>
+
+                    <!-- 1. Tiêu đề tóm tắt (Headline) * -->
+                    <div class="mb-3">
+                        <label for="createNewsHeadline" class="form-label fw-semibold small">
+                            Tiêu đề tóm tắt (Headline) <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="createNewsHeadline" name="headline"
+                               placeholder="Tóm tắt ngắn gọn nội dung bài viết (bắt buộc)..." maxlength="150" required />
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="invalid-feedback d-block d-none" id="errorCreateNewsHeadline">Tiêu đề tóm tắt là bắt buộc (tối đa 150 ký tự).</div>
+                            <div class="form-text text-muted small ms-auto"><span id="createNewsHeadlineCount">0</span>/150 ký tự</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Tiêu đề đầy đủ (NewsTitle) -->
+                    <div class="mb-3">
+                        <label for="createNewsTitle" class="form-label fw-semibold small">
+                            Tiêu đề bài viết (News Title) <span class="text-muted">(Tùy chọn)</span>
+                        </label>
+                        <input type="text" class="form-control" id="createNewsTitle" name="newsTitle"
+                               placeholder="Tiêu đề chính thức của bài viết..." maxlength="400" />
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="invalid-feedback d-block d-none" id="errorCreateNewsTitle">Tiêu đề bài viết không được vượt quá 400 ký tự.</div>
+                            <div class="form-text text-muted small ms-auto"><span id="createNewsTitleCount">0</span>/400 ký tự</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <!-- 3. Chuyên mục (CategoryId) * (Chỉ hiển thị chuyên mục hoạt động - AC 4) -->
+                        <div class="col-12 col-md-6">
+                            <label for="createNewsCategory" class="form-label fw-semibold small">
+                                Chuyên mục (Category) <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="createNewsCategory" name="categoryId" required>
+                                <option value="">-- Chọn chuyên mục --</option>
+                                @foreach (var cat in Model.Categories.Where(c => c.IsActive == true))
+                                {
+                                    <option value="@cat.CategoryId">@cat.CategoryName</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback d-block d-none" id="errorCreateNewsCategory">Vui lòng chọn chuyên mục cho bài viết.</div>
+                        </div>
+
+                        <!-- 4. Trạng thái (NewsStatus) -->
+                        <div class="col-12 col-md-6">
+                            <label for="createNewsStatus" class="form-label fw-semibold small">
+                                Trạng thái hiển thị <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="createNewsStatus" name="newsStatus">
+                                <option value="true" selected>Đang hiển thị (Active)</option>
+                                <option value="false">Tạm ẩn (Inactive)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5. Nguồn tin (NewsSource) -->
+                    <div class="mb-3">
+                        <label for="createNewsSource" class="form-label fw-semibold small">
+                            Nguồn tin tức (News Source) <span class="text-muted">(Tùy chọn)</span>
+                        </label>
+                        <input type="text" class="form-control" id="createNewsSource" name="newsSource"
+                               placeholder="Ví dụ: Báo Giáo Dục, FU Media, VnExpress..." maxlength="400" />
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="invalid-feedback d-block d-none" id="errorCreateNewsSource">Nguồn tin không được vượt quá 400 ký tự.</div>
+                            <div class="form-text text-muted small ms-auto"><span id="createNewsSourceCount">0</span>/400 ký tự</div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Thẻ tin tức (Tags) (AC 5: Tồn tại & distinct) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small d-block mb-1">
+                            <i class="bi bi-tags me-1"></i>Gắn thẻ tin tức (Tags) <span class="text-muted">(Tùy chọn, chọn nhiều)</span>
+                        </label>
+                        <div class="border rounded p-3 bg-light" style="max-height: 150px; overflow-y: auto;">
+                            @if (Model.Tags != null && Model.Tags.Count > 0)
+                            {
+                                <div class="row g-2" id="createNewsTagsContainer">
+                                    @foreach (var tag in Model.Tags)
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input create-news-tag-cb" type="checkbox"
+                                                       value="@tag.TagId" id="cbTag_@tag.TagId" />
+                                                <label class="form-check-label small text-truncate d-block" for="cbTag_@tag.TagId" title="@tag.TagName">
+                                                    #@tag.TagName
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Chưa có thẻ tin nào trong hệ thống.</span>
+                            }
+                        </div>
+                        <div class="invalid-feedback d-block d-none" id="errorCreateNewsTags"></div>
+                    </div>
+
+                    <!-- 7. Nội dung bài viết (NewsContent) -->
+                    <div class="mb-2">
+                        <label for="createNewsContent" class="form-label fw-semibold small">
+                            Nội dung chi tiết (News Content) <span class="text-muted">(Tùy chọn)</span>
+                        </label>
+                        <textarea class="form-control" id="createNewsContent" name="newsContent" rows="6"
+                                  placeholder="Nhập nội dung đầy đủ của bài viết tại đây..." maxlength="4000"></textarea>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="invalid-feedback d-block d-none" id="errorCreateNewsContent">Nội dung bài viết không được vượt quá 4000 ký tự.</div>
+                            <div class="form-text text-muted small ms-auto"><span id="createNewsContentCount">0</span>/4000 ký tự</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 px-4">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal" id="btnCancelCreateNewsModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitCreateNews">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerCreateNews" role="status" aria-hidden="true"></span>
+                        <span id="btnTextCreateNews"><i class="bi bi-save me-1"></i>Lưu bài viết</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Modal chi tiết
-            const modalEl = document.getElementById('modalNewsDetail');
-            const detailModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+            // Toast controllers
+            const toastSuccessEl = document.getElementById('toastSuccess');
+            const toastErrorEl = document.getElementById('toastError');
+            const toastSuccess = toastSuccessEl ? new bootstrap.Toast(toastSuccessEl, { delay: 4000 }) : null;
+            const toastError = toastErrorEl ? new bootstrap.Toast(toastErrorEl, { delay: 5000 }) : null;
+
+            function showToast(isSuccess, message) {
+                if (isSuccess) {
+                    const msgEl = document.getElementById('toastSuccessMessage');
+                    if (msgEl) msgEl.textContent = message;
+                    toastSuccess?.show();
+                } else {
+                    const msgEl = document.getElementById('toastErrorMessage');
+                    if (msgEl) msgEl.textContent = message;
+                    toastError?.show();
+                }
+            }
+
+            // ==========================================
+            // MODAL CHI TIẾT BÀI VIẾT (FUN-011)
+            // ==========================================
+            const modalDetailEl = document.getElementById('modalNewsDetail');
+            const detailModal = modalDetailEl ? new bootstrap.Modal(modalDetailEl) : null;
 
             const spinner = document.getElementById('spinnerNewsDetail');
             const alertError = document.getElementById('alertNewsDetailError');
@@ -468,76 +658,394 @@
             const tagsEl = document.getElementById('detailNewsTags');
             const bodyEl = document.getElementById('detailNewsContent');
 
-            // Bắt sự kiện click nút xem chi tiết
-            document.querySelectorAll('.btn-view-news').forEach(btn => {
-                btn.addEventListener('click', async function () {
-                    const newsId = this.getAttribute('data-news-id');
-                    if (!newsId) return;
+            function bindDetailButtons(container = document) {
+                container.querySelectorAll('.btn-view-news').forEach(btn => {
+                    // Tránh bind 2 lần
+                    if (btn.hasAttribute('data-bound')) return;
+                    btn.setAttribute('data-bound', 'true');
 
-                    // Reset modal state
-                    if (alertError) alertError.classList.add('d-none');
-                    if (content) content.classList.add('d-none');
-                    if (spinner) spinner.classList.remove('d-none');
+                    btn.addEventListener('click', async function () {
+                        const newsId = this.getAttribute('data-news-id');
+                        if (!newsId) return;
 
-                    detailModal?.show();
+                        if (alertError) alertError.classList.add('d-none');
+                        if (content) content.classList.add('d-none');
+                        if (spinner) spinner.classList.remove('d-none');
 
-                    try {
-                        const response = await fetch(`/staff/news?handler=Detail&id=${encodeURIComponent(newsId)}`, {
-                            headers: { 'Accept': 'application/json' }
-                        });
-                        const result = await response.json();
+                        detailModal?.show();
 
-                        if (result && result.success && result.article) {
-                            const a = result.article;
+                        try {
+                            const response = await fetch(`/staff/news?handler=Detail&id=${encodeURIComponent(newsId)}`, {
+                                headers: { 'Accept': 'application/json' }
+                            });
+                            const result = await response.json();
 
-                            if (idEl) idEl.textContent = `#${a.newsArticleId}`;
-                            if (titleEl) titleEl.textContent = a.newsTitle || 'Không có tiêu đề';
-                            if (headlineEl) headlineEl.textContent = a.headline || '—';
-                            if (categoryEl) categoryEl.textContent = a.categoryName || 'Chưa phân loại';
-                            if (authorEl) authorEl.textContent = a.authorName || 'Chưa ghi nhận';
-                            if (sourceEl) sourceEl.textContent = a.newsSource || 'N/A';
-                            if (createdDateEl) createdDateEl.textContent = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : '—';
-                            if (modifiedDateEl) modifiedDateEl.textContent = a.modifiedDate ? new Date(a.modifiedDate).toLocaleString('vi-VN') : 'Chưa chỉnh sửa';
-                            if (lastEditorEl) lastEditorEl.textContent = a.lastEditorName || '—';
+                            if (result && result.success && result.article) {
+                                const a = result.article;
 
-                            if (statusEl) {
-                                if (a.newsStatus === true) {
-                                    statusEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>`;
-                                } else {
-                                    statusEl.innerHTML = `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>`;
+                                if (idEl) idEl.textContent = `#${a.newsArticleId}`;
+                                if (titleEl) titleEl.textContent = a.newsTitle || 'Không có tiêu đề';
+                                if (headlineEl) headlineEl.textContent = a.headline || '—';
+                                if (categoryEl) categoryEl.textContent = a.categoryName || 'Chưa phân loại';
+                                if (authorEl) authorEl.textContent = a.authorName || 'Chưa ghi nhận';
+                                if (sourceEl) sourceEl.textContent = a.newsSource || 'N/A';
+                                if (createdDateEl) createdDateEl.textContent = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : '—';
+                                if (modifiedDateEl) modifiedDateEl.textContent = a.modifiedDate ? new Date(a.modifiedDate).toLocaleString('vi-VN') : 'Chưa chỉnh sửa';
+                                if (lastEditorEl) lastEditorEl.textContent = a.lastEditorName || '—';
+
+                                if (statusEl) {
+                                    if (a.newsStatus === true) {
+                                        statusEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>`;
+                                    } else {
+                                        statusEl.innerHTML = `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>`;
+                                    }
                                 }
-                            }
 
-                            // Tags
-                            if (tagsEl) {
-                                if (a.tags && a.tags.length > 0) {
-                                    tagsEl.innerHTML = a.tags.map(t =>
-                                        `<span class="badge bg-light text-dark border px-2 py-1">#${escapeHtml(t.tagName)}</span>`
-                                    ).join('');
-                                } else {
-                                    tagsEl.innerHTML = '<span class="text-muted small">Không có thẻ tin nào</span>';
+                                if (tagsEl) {
+                                    if (a.tags && a.tags.length > 0) {
+                                        tagsEl.innerHTML = a.tags.map(t =>
+                                            `<span class="badge bg-light text-dark border px-2 py-1">#${escapeHtml(t.tagName)}</span>`
+                                        ).join('');
+                                    } else {
+                                        tagsEl.innerHTML = '<span class="text-muted small">Không có thẻ tin nào</span>';
+                                    }
                                 }
-                            }
 
-                            // Content (Plain text an toàn)
-                            if (bodyEl) {
-                                bodyEl.textContent = a.newsContent || 'Không có nội dung.';
-                            }
+                                if (bodyEl) {
+                                    bodyEl.textContent = a.newsContent || 'Không có nội dung.';
+                                }
 
-                            if (spinner) spinner.classList.add('d-none');
-                            if (content) content.classList.remove('d-none');
-                        } else {
-                            const msg = (result && result.message) ? result.message : 'Không tìm thấy dữ liệu bài viết.';
-                            if (textError) textError.textContent = msg;
+                                if (spinner) spinner.classList.add('d-none');
+                                if (content) content.classList.remove('d-none');
+                            } else {
+                                const msg = (result && result.message) ? result.message : 'Không tìm thấy dữ liệu bài viết.';
+                                if (textError) textError.textContent = msg;
+                                if (spinner) spinner.classList.add('d-none');
+                                if (alertError) alertError.classList.remove('d-none');
+                            }
+                        } catch (err) {
+                            if (textError) textError.textContent = 'Lỗi kết nối khi tải chi tiết bài viết.';
                             if (spinner) spinner.classList.add('d-none');
                             if (alertError) alertError.classList.remove('d-none');
                         }
-                    } catch (err) {
-                        if (textError) textError.textContent = 'Lỗi kết nối khi tải chi tiết bài viết.';
-                        if (spinner) spinner.classList.add('d-none');
-                        if (alertError) alertError.classList.remove('d-none');
-                    }
+                    });
                 });
+            }
+
+            bindDetailButtons();
+
+            // ==========================================
+            // MODAL TẠO BÀI VIẾT MỚI (FUN-012)
+            // ==========================================
+            const modalCreateEl = document.getElementById('modalCreateNews');
+            const createModal = modalCreateEl ? new bootstrap.Modal(modalCreateEl) : null;
+            const formCreate = document.getElementById('formCreateNews');
+
+            const inputHeadline = document.getElementById('createNewsHeadline');
+            const inputTitle = document.getElementById('createNewsTitle');
+            const selectCategory = document.getElementById('createNewsCategory');
+            const selectStatus = document.getElementById('createNewsStatus');
+            const inputSource = document.getElementById('createNewsSource');
+            const inputContent = document.getElementById('createNewsContent');
+
+            const countHeadline = document.getElementById('createNewsHeadlineCount');
+            const countTitle = document.getElementById('createNewsTitleCount');
+            const countSource = document.getElementById('createNewsSourceCount');
+            const countContent = document.getElementById('createNewsContentCount');
+
+            const alertCreate = document.getElementById('createNewsAlert');
+            const alertCreateText = document.getElementById('createNewsAlertText');
+
+            const errorHeadline = document.getElementById('errorCreateNewsHeadline');
+            const errorTitle = document.getElementById('errorCreateNewsTitle');
+            const errorCategory = document.getElementById('errorCreateNewsCategory');
+            const errorSource = document.getElementById('errorCreateNewsSource');
+            const errorTags = document.getElementById('errorCreateNewsTags');
+            const errorContent = document.getElementById('errorCreateNewsContent');
+
+            const btnSubmitCreate = document.getElementById('btnSubmitCreateNews');
+            const spinnerCreate = document.getElementById('spinnerCreateNews');
+            const btnTextCreate = document.getElementById('btnTextCreateNews');
+
+            // Cập nhật bộ đếm ký tự
+            function setupCounter(input, counter) {
+                if (!input || !counter) return;
+                input.addEventListener('input', () => {
+                    counter.textContent = input.value.length;
+                });
+            }
+
+            setupCounter(inputHeadline, countHeadline);
+            setupCounter(inputTitle, countTitle);
+            setupCounter(inputSource, countSource);
+            setupCounter(inputContent, countContent);
+
+            function clearCreateValidationErrors() {
+                if (alertCreate) alertCreate.classList.add('d-none');
+                const inputs = [inputHeadline, inputTitle, selectCategory, inputSource, inputContent];
+                inputs.forEach(el => el?.classList.remove('is-invalid'));
+                const errors = [errorHeadline, errorTitle, errorCategory, errorSource, errorTags, errorContent];
+                errors.forEach(el => el?.classList.add('d-none'));
+            }
+
+            function resetCreateForm() {
+                formCreate?.reset();
+                clearCreateValidationErrors();
+                if (countHeadline) countHeadline.textContent = '0';
+                if (countTitle) countTitle.textContent = '0';
+                if (countSource) countSource.textContent = '0';
+                if (countContent) countContent.textContent = '0';
+                document.querySelectorAll('.create-news-tag-cb').forEach(cb => cb.checked = false);
+            }
+
+            modalCreateEl?.addEventListener('hidden.bs.modal', function () {
+                resetCreateForm();
+            });
+
+            formCreate?.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                clearCreateValidationErrors();
+
+                // Lấy dữ liệu form
+                const headline = inputHeadline ? inputHeadline.value.trim() : '';
+                const title = inputTitle ? inputTitle.value.trim() : '';
+                const categoryId = selectCategory ? parseInt(selectCategory.value) : 0;
+                const status = selectStatus ? (selectStatus.value === 'true') : true;
+                const source = inputSource ? inputSource.value.trim() : '';
+                const contentText = inputContent ? inputContent.value.trim() : '';
+
+                // Thu thập thẻ tin đã chọn (AC 5)
+                const tagCheckboxes = document.querySelectorAll('.create-news-tag-cb:checked');
+                const tagIds = Array.from(tagCheckboxes).map(cb => parseInt(cb.value)).filter(v => !isNaN(v) && v > 0);
+
+                // Client validation cơ bản
+                let hasClientError = false;
+                if (!headline) {
+                    inputHeadline?.classList.add('is-invalid');
+                    if (errorHeadline) {
+                        errorHeadline.textContent = 'Tiêu đề tóm tắt là bắt buộc.';
+                        errorHeadline.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                } else if (headline.length > 150) {
+                    inputHeadline?.classList.add('is-invalid');
+                    if (errorHeadline) {
+                        errorHeadline.textContent = 'Tiêu đề tóm tắt không được vượt quá 150 ký tự.';
+                        errorHeadline.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                }
+
+                if (!categoryId || isNaN(categoryId) || categoryId <= 0) {
+                    selectCategory?.classList.add('is-invalid');
+                    if (errorCategory) {
+                        errorCategory.textContent = 'Vui lòng chọn một chuyên mục hợp lệ.';
+                        errorCategory.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                }
+
+                if (title && title.length > 400) {
+                    inputTitle?.classList.add('is-invalid');
+                    if (errorTitle) {
+                        errorTitle.textContent = 'Tiêu đề bài viết không được vượt quá 400 ký tự.';
+                        errorTitle.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                }
+
+                if (source && source.length > 400) {
+                    inputSource?.classList.add('is-invalid');
+                    if (errorSource) {
+                        errorSource.textContent = 'Nguồn tin không được vượt quá 400 ký tự.';
+                        errorSource.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                }
+
+                if (contentText && contentText.length > 4000) {
+                    inputContent?.classList.add('is-invalid');
+                    if (errorContent) {
+                        errorContent.textContent = 'Nội dung bài viết không được vượt quá 4000 ký tự.';
+                        errorContent.classList.remove('d-none');
+                    }
+                    hasClientError = true;
+                }
+
+                if (hasClientError) return;
+
+                // Chuẩn bị gửi AJAX
+                const tokenEl = formCreate.querySelector('input[name="__RequestVerificationToken"]');
+                const token = tokenEl ? tokenEl.value : '';
+
+                const payload = {
+                    headline: headline,
+                    newsTitle: title || null,
+                    categoryId: categoryId,
+                    newsStatus: status,
+                    newsSource: source || null,
+                    newsContent: contentText || null,
+                    tagIds: tagIds
+                };
+
+                // Bật spinner
+                if (btnSubmitCreate) btnSubmitCreate.disabled = true;
+                if (spinnerCreate) spinnerCreate.classList.remove('d-none');
+                if (btnTextCreate) btnTextCreate.innerHTML = '<i class="bi bi-save me-1"></i>Đang lưu...';
+
+                try {
+                    const response = await fetch('/staff/news?handler=Create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result && result.success && result.article) {
+                        const a = result.article;
+                        createModal?.hide();
+                        resetCreateForm();
+                        showToast(true, result.message || 'Tạo bài viết mới thành công.');
+
+                        // Xóa dòng rỗng nếu đang hiển thị
+                        const emptyRow = document.getElementById('rowEmptyNews');
+                        if (emptyRow) emptyRow.remove();
+
+                        // Cập nhật DOM: Chèn bài viết mới vào đầu danh sách (AC 7)
+                        const tbody = document.getElementById('tableNewsBody');
+                        if (tbody) {
+                            const newRow = document.createElement('tr');
+                            newRow.id = `row-news-${a.newsArticleId}`;
+                            newRow.className = 'table-success-subtle'; // Highlight nhẹ bài mới
+
+                            // Tags html
+                            let tagsHtml = '<span class="text-muted small">—</span>';
+                            if (a.tags && a.tags.length > 0) {
+                                const tagBadges = a.tags.slice(0, 3).map(t =>
+                                    `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`
+                                ).join(' ');
+                                const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
+                                tagsHtml = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
+                            }
+
+                            // Status badge
+                            const statusBadge = a.newsStatus === true
+                                ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+
+                            const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : 'Vừa xong';
+
+                            newRow.innerHTML = `
+                                <td class="text-center fw-semibold text-muted small">
+                                    <span class="badge bg-light text-dark border">${escapeHtml(a.newsArticleId)}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
+                                    <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="small fw-semibold text-secondary">
+                                        <i class="bi bi-person text-secondary me-1"></i>${escapeHtml(a.authorName || 'Chưa ghi nhận')}
+                                    </span>
+                                </td>
+                                <td class="small text-muted">${formattedDate}</td>
+                                <td class="text-center">${statusBadge}</td>
+                                <td>${tagsHtml}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
+                                            data-news-id="${escapeHtml(a.newsArticleId)}"
+                                            title="Xem chi tiết bài viết">
+                                        <i class="bi bi-eye me-1"></i>Chi tiết
+                                    </button>
+                                </td>
+                            `;
+
+                            tbody.prepend(newRow);
+                            bindDetailButtons(newRow);
+
+                            // Cập nhật tổng số bài trên badge
+                            const badgeTotal = document.getElementById('badgeTotalNewsCount');
+                            if (badgeTotal) {
+                                const currentTotal = parseInt(badgeTotal.textContent) || 0;
+                                badgeTotal.textContent = (currentTotal + 1).toString();
+                            }
+                        }
+                    } else {
+                        // Xử lý lỗi validation từ server
+                        const msg = (result && result.message) ? result.message : 'Không thể lưu bài viết. Vui lòng kiểm tra lại.';
+                        if (alertCreate && alertCreateText) {
+                            alertCreateText.textContent = msg;
+                            alertCreate.classList.remove('d-none');
+                        }
+
+                        if (result && result.errors) {
+                            for (const [key, errList] of Object.entries(result.errors)) {
+                                const lowerKey = key.toLowerCase();
+                                const firstError = Array.isArray(errList) ? errList[0] : errList;
+
+                                if (lowerKey.includes('headline')) {
+                                    inputHeadline?.classList.add('is-invalid');
+                                    if (errorHeadline) {
+                                        errorHeadline.textContent = firstError;
+                                        errorHeadline.classList.remove('d-none');
+                                    }
+                                } else if (lowerKey.includes('category')) {
+                                    selectCategory?.classList.add('is-invalid');
+                                    if (errorCategory) {
+                                        errorCategory.textContent = firstError;
+                                        errorCategory.classList.remove('d-none');
+                                    }
+                                } else if (lowerKey.includes('title')) {
+                                    inputTitle?.classList.add('is-invalid');
+                                    if (errorTitle) {
+                                        errorTitle.textContent = firstError;
+                                        errorTitle.classList.remove('d-none');
+                                    }
+                                } else if (lowerKey.includes('source')) {
+                                    inputSource?.classList.add('is-invalid');
+                                    if (errorSource) {
+                                        errorSource.textContent = firstError;
+                                        errorSource.classList.remove('d-none');
+                                    }
+                                } else if (lowerKey.includes('tag')) {
+                                    if (errorTags) {
+                                        errorTags.textContent = firstError;
+                                        errorTags.classList.remove('d-none');
+                                    }
+                                } else if (lowerKey.includes('content')) {
+                                    inputContent?.classList.add('is-invalid');
+                                    if (errorContent) {
+                                        errorContent.textContent = firstError;
+                                        errorContent.classList.remove('d-none');
+                                    }
+                                }
+                            }
+                        }
+
+                        showToast(false, msg);
+                    }
+                } catch (err) {
+                    const errorMsg = 'Lỗi kết nối khi gửi yêu cầu tạo bài viết.';
+                    if (alertCreate && alertCreateText) {
+                        alertCreateText.textContent = errorMsg;
+                        alertCreate.classList.remove('d-none');
+                    }
+                    showToast(false, errorMsg);
+                } finally {
+                    if (btnSubmitCreate) btnSubmitCreate.disabled = false;
+                    if (spinnerCreate) spinnerCreate.classList.add('d-none');
+                    if (btnTextCreate) btnTextCreate.innerHTML = '<i class="bi bi-save me-1"></i>Lưu bài viết';
+                }
             });
 
             function escapeHtml(text) {
@@ -556,3 +1064,4 @@
         }
     </script>
 }
+
