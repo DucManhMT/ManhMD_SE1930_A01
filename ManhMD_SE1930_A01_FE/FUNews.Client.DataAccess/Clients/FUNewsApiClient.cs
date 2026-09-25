@@ -315,6 +315,23 @@ public class FUNewsApiClient : IFUNewsApiClient
         return result ?? new ODataEnvelope<T>();
     }
 
+    public async Task<NewsReportApiModel> GetReportAsync(DateTime startDate, DateTime endDate, string? groupBy = null, CancellationToken cancellationToken = default)
+    {
+        var startStr = Uri.EscapeDataString(startDate.ToString("yyyy-MM-dd"));
+        var endStr = Uri.EscapeDataString(endDate.ToString("yyyy-MM-dd"));
+        var groupParam = string.IsNullOrWhiteSpace(groupBy) ? "" : $"&groupBy={Uri.EscapeDataString(groupBy)}";
+
+        var uri = $"api/report?startDate={startStr}&endDate={endStr}{groupParam}";
+        using var response = await _httpClient.GetAsync(uri, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var report = await response.Content.ReadFromJsonAsync<NewsReportApiModel>(JsonOptions, cancellationToken);
+        return report ?? new NewsReportApiModel();
+    }
+
     private async Task<T?> GetSingleAsync<T>(string relativeUri, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(relativeUri, cancellationToken);

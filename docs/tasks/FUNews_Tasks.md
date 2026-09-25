@@ -797,7 +797,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-019 — Báo cáo và audit cuối
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 013
 - Actor: Admin
 - Điểm vào/phạm vi file: /admin/reports; /api/report
@@ -815,17 +815,38 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - BusinessLogic DTOs & Services: [NewsReportDto.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/DTOs/NewsReportDto.cs) (`ReportDetailDto`, `ReportGroupSummaryDto`, `NewsReportDto`), [IReportService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/IReportService.cs), [ReportService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/ReportService.cs), [BusinessLogicServiceCollectionExtensions.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Extensions/BusinessLogicServiceCollectionExtensions.cs).
+    - API Controller: [ReportController.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_BE/Controllers/ReportController.cs) (`GET /api/report` với `[Authorize(Roles = "Admin")]`, date range validation, RFC 7807 ProblemDetails).
+  - Frontend:
+    - DataAccess Models & Clients: [NewsReportApiModel.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Models/NewsReportApiModel.cs), [IFUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs), [FUNewsApiClient.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/FUNewsApiClient.cs).
+    - BusinessLogic Services: [IReportClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/IReportClientService.cs), [ReportClientService.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/ReportClientService.cs), [ClientBusinessLogicServiceCollectionExtensions.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Extensions/ClientBusinessLogicServiceCollectionExtensions.cs).
+    - Presentation (Razor Pages): [Reports.cshtml](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Reports.cshtml), [Reports.cshtml.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/ManhMD_SE1930_A01_FE/Pages/Admin/Reports.cshtml.cs) (Date range picker mặc định 30 ngày, GroupBy filter, 3 thẻ tổng quan bài viết, bảng nhóm kèm progress bar, bảng chi tiết audit LastEditorName & ModifiedDate, empty state).
+  - Tests:
+    - Backend: [NewsArticleReportTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/NewsArticleReportTests.cs) (5 tests kiểm thử AC 1 -> AC 7: Admin 200, Staff 403, Lecturer 403, Anon 401; StartDate > EndDate trả 400; Inclusive boundary 23:59:59 của EndDate; Aggregate totals & Sort desc & Nullable left join; Grouping theo Category, Author, Status).
+    - Frontend: [ReportsRazorPageTests.cs](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/ReportsRazorPageTests.cs) (4 tests kiểm thử Razor Page model: Default 30-day range, validation Start > End không gọi service, custom groupBy passing, API error handling).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 122 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 100 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - AC 1: Validate `startDate <= endDate` chặt chẽ ở cả client-side (báo lỗi trên UI, không query) và server-side (trả 400 Bad Request kèm ProblemDetails).
+  - AC 2: Tính trọn vẹn `endDate.Date.AddDays(1)` đảm bảo bài viết tạo lúc 23:59:59 của ngày kết thúc vẫn được thống kê đầy đủ.
+  - AC 3: Thống kê chính xác tổng số bài viết (`TotalArticles`), số bài Active (`TotalActive`), số bài Inactive (`TotalInactive`) và bảng nhóm (`GroupSummaries`) theo `category`, `author`, hoặc `status`.
+  - AC 4: Danh sách chi tiết bài viết sắp xếp giảm dần theo ngày tạo (`CreatedDate desc, NewsArticleID desc`).
+  - AC 5: Xử lý an toàn left join nullable với Category (`"Không phân loại"`) và UpdatedBy (`"Chưa chỉnh sửa"`, `ModifiedDate = null`); DTO report tuyệt đối không rò rỉ password/hash.
+  - AC 6: Endpoint `GET /api/report` được bảo vệ bằng `[Authorize(Roles = "Admin")]`. Staff và Lecturer bị từ chối với `403 Forbidden` (Test Plan T02), Anonymous nhận `401 Unauthorized`.
+  - AC 7: Truy vấn trực tiếp `NewsArticle` qua repository `GetQueryable()`, tuyệt đối không tạo bảng hay trigger log nhân tạo.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-020 — Kiểm thử tích hợp và UI
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 006,007,009,014,015,017,018,019
 - Actor: Developer
-- Điểm vào/phạm vi file: Test_Plan T01–T29
+- Điểm vào/phạm vi file: Test_Plan T01–T29; [docs/evidence/FUNews_Verification_Evidence.md](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/docs/evidence/FUNews_Verification_Evidence.md)
 - Mục tiêu: Chạy critical integration, regression CRUD/search/filter và responsive/accessibility.
 
 ### Acceptance criteria
@@ -838,23 +859,34 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Báo cáo bằng chứng nghiệm thu: [docs/evidence/FUNews_Verification_Evidence.md](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/docs/evidence/FUNews_Verification_Evidence.md).
+  - Test suites: 17 files test Backend trong [tests/FUNews.Tests/](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Tests/) và 12 files test Frontend trong [tests/FUNews.Client.Tests/](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/tests/FUNews.Client.Tests/).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 122/122 Passed (100% pass, 0 Failed, 0 Skipped).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 100/100 Passed (100% pass, 0 Failed, 0 Skipped).
+- UI/SQL/API evidence:
+  - T01–T29: Đạt 29/29 kịch bản kiểm thử tích hợp (100% PASS).
+  - API trực tiếp: Endpoint được bảo vệ bằng JWT Bearer Authentication; kiểm tra chặt chẽ 401 Unauthorized khi thiếu token, 403 Forbidden khi role không hợp lệ (Lecturer gọi mutation bị chặn, Staff gọi Account/Report bị chặn).
+  - SQL Transaction & FK thật: Transaction rollback khi gặp lỗi ngoại lệ tạo bài viết hoặc TagID không hợp lệ; FK NO ACTION bảo vệ không cho phép xóa Category/Tag/Account đang có liên kết.
+  - OData: Cấu hình MaxTop (100), cấm truy cập property nhạy cảm (password), expand có chọn lọc.
+  - UI Modal & Responsive: Tương thích mượt mà ở các độ phân giải 390px, 768px, 1024px, 1440px; modal submit xử lý lỗi inline không reload hay báo thành công giả.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-021 — README và bộ nộp
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 020
 - Actor: Developer
-- Điểm vào/phạm vi file: README.md; SQL/patch/seed; docs/evidence
+- Điểm vào/phạm vi file: [README.md](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/README.md); database/patches; docs/evidence
 - Mục tiêu: Hướng dẫn chạy, cấu hình, API overview, test credentials, screenshots và checklist.
 
 ### Acceptance criteria
 
 1. Setup mới làm theo README được.
-2. Hai solution đúng tên.
+2. Hai solution đúng tên (`ManhMD_SE1930_A01_BE.sln`, `ManhMD_SE1930_A01_FE.sln`).
 3. >=5 meaningful records mỗi bảng.
 4. Không secret thật.
 5. Ghi giả định và limitations.
@@ -862,10 +894,21 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - [README.md](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/README.md): Cập nhật toàn diện hướng dẫn cài đặt, database patches, cấu hình appsettings, tài khoản demo (Admin/Staff/Lecturer), bảng danh mục đầy đủ các API endpoints, hướng dẫn khởi chạy hai solution, kết quả kiểm thử và giới hạn hệ thống.
+  - [docs/evidence/FUNews_Verification_Evidence.md](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/docs/evidence/FUNews_Verification_Evidence.md): Bằng chứng nghiệm thu chi tiết đối chiếu R01–R19 và T01–T29.
+  - Database Patches: [001_preflight_check.sql](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/database/patches/001_preflight_check.sql), [002_apply_patches.sql](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/database/patches/002_apply_patches.sql), [003_create_sequences.sql](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/database/patches/003_create_sequences.sql), [004_verify_patches.sql](file:///e:/IDE/My_Project/PRN232/ASS01/ManhMD_SE1930_A01/database/patches/004_verify_patches.sql).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 122/122 Passed (100%).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 100/100 Passed (100%).
+- UI/SQL/API evidence:
+  - Đúng chuẩn tên 2 solution: `ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln` và `ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`.
+  - Database chứa ít nhất 5 bản ghi ý nghĩa mỗi bảng (Category: 8, Tag: 9, Account: 5, News: 7, NewsTag: 12).
+  - An toàn bảo mật: Không có secret thật (mật khẩu BCrypt hash, JWT dev signing key chuẩn mẫu).
+  - Ghi rõ các giới hạn: Không xây dựng workflow duyệt bài, không upload ảnh vật lý, không đăng ký tài khoản tự do; Export Excel là tùy chọn (FUN-022).
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-022 — Export Excel tùy chọn
 

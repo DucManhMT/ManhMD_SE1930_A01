@@ -36,4 +36,6 @@ public interface IFUNewsApiClient
     Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default);
 
     Task<LoginResponseApiModel> LoginAsync(LoginRequestApiModel request, CancellationToken cancellationToken = default);
+
+    Task<NewsReportApiModel> GetReportAsync(DateTime startDate, DateTime endDate, string? groupBy = null, CancellationToken cancellationToken = default);
 }

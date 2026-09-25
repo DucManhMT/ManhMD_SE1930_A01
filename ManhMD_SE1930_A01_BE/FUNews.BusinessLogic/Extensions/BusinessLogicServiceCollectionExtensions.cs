@@ -26,6 +26,7 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddScoped<Services.ITagService, Services.TagService>();
         services.AddScoped<Services.INewsArticleService, Services.NewsArticleService>();
         services.AddScoped<Services.IAccountService, Services.AccountService>();
+        services.AddScoped<Services.IReportService, Services.ReportService>();
 
         return services;
     }
