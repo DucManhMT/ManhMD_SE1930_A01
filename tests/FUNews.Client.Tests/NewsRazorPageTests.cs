@@ -47,6 +47,8 @@ public class NewsRazorPageTests
 
         public bool ShouldFailGet { get; set; }
         public bool ShouldFailCreate { get; set; }
+        public bool ShouldFailUpdate { get; set; }
+        public Dictionary<string, string[]>? UpdateValidationErrors { get; set; }
 
         public Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
         {
@@ -92,6 +94,20 @@ public class NewsRazorPageTests
 
         public Task<NewsArticleApiModel> UpdateNewsArticleAsync(string id, UpdateNewsArticleApiModel request, CancellationToken cancellationToken = default)
         {
+            if (ShouldFailUpdate)
+            {
+                var problem = new ApiProblemDetails
+                {
+                    Status = 400,
+                    Title = "Dữ liệu không hợp lệ",
+                    Detail = "Không thể chuyển bài viết sang chuyên mục đã bị tạm ẩn.",
+                    Errors = UpdateValidationErrors ?? new Dictionary<string, string[]>
+                    {
+                        ["CategoryId"] = new[] { "Không thể chuyển bài viết sang chuyên mục đã bị tạm ẩn." }
+                    }
+                };
+                throw new FUNewsApiException(System.Net.HttpStatusCode.BadRequest, problem.Detail, problem);
+            }
             var article = Articles.FirstOrDefault(a => a.NewsArticleId == id);
             if (article == null)
             {
@@ -470,6 +486,71 @@ public class NewsRazorPageTests
 
         // Confirm deleted from service
         Assert.DoesNotContain(fakeNews.Articles, a => a.NewsArticleId == "ART_01");
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WhenModelStateIsInvalid_ReturnsValidationErrors()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+        pageModel.ModelState.AddModelError("Headline", "Tiêu đề tóm tắt (Headline) là bắt buộc.");
+
+        var input = new UpdateNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01",
+            Headline = "",
+            CategoryId = 1
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var errorsProp = type.GetProperty("errors");
+        Assert.NotNull(errorsProp);
+        var errors = errorsProp.GetValue(jsonResult.Value) as IDictionary<string, string[]>;
+        Assert.NotNull(errors);
+        Assert.True(errors.ContainsKey("Headline") || errors.ContainsKey("headline"));
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WhenApiThrowsException_ReturnsNormalizedErrors()
+    {
+        var fakeNews = new FakeNewsClientService { ShouldFailUpdate = true };
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new UpdateNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01",
+            Headline = "Tiêu đề hợp lệ",
+            CategoryId = 2
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var msgProp = type.GetProperty("message");
+        Assert.NotNull(msgProp);
+        Assert.Contains("Không thể chuyển bài viết", msgProp.GetValue(jsonResult.Value)?.ToString());
+
+        var errorsProp = type.GetProperty("errors");
+        Assert.NotNull(errorsProp);
+        var errors = errorsProp.GetValue(jsonResult.Value) as IDictionary<string, string[]>;
+        Assert.NotNull(errors);
+        Assert.True(errors.ContainsKey("CategoryId") || errors.ContainsKey("categoryId"));
     }
 }
 

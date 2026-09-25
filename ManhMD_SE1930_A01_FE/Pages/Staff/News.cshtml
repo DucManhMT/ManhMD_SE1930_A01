@@ -816,6 +816,12 @@
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Anti-Forgery Token Helper
+            function getCsrfToken() {
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
             // Toast controllers
             const toastSuccessEl = document.getElementById('toastSuccess');
             const toastErrorEl = document.getElementById('toastError');
@@ -1098,7 +1104,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'RequestVerificationToken': token,
+                            'X-CSRF-TOKEN': getCsrfToken(),
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify(payload)
@@ -1458,7 +1464,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'RequestVerificationToken': token,
+                            'X-CSRF-TOKEN': getCsrfToken(),
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify(payload)
@@ -1474,40 +1480,86 @@
                         // Cập nhật dòng trong bảng
                         const row = document.getElementById(`row-news-${a.newsArticleId}`);
                         if (row) {
-                            // Cập nhật tiêu đề & headline
-                            const titleDiv = row.querySelector('td:nth-child(2) .fw-semibold');
-                            if (titleDiv) titleDiv.textContent = a.newsTitle || 'Không có tiêu đề';
-                            const headlineDiv = row.querySelector('td:nth-child(2) .text-secondary');
-                            if (headlineDiv) headlineDiv.textContent = a.headline;
+                            // Cập nhật tiêu đề & headline (an toàn cả khi ban đầu rỗng)
+                            const titleCol = row.querySelector('td:nth-child(2)');
+                            if (titleCol) {
+                                titleCol.innerHTML = `
+                                    <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
+                                    <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                `;
+                            }
 
                             // Cập nhật chuyên mục
-                            const catBadge = row.querySelector('td:nth-child(3) .badge');
-                            if (catBadge) catBadge.innerHTML = `<i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}`;
+                            const catCol = row.querySelector('td:nth-child(3)');
+                            if (catCol) {
+                                catCol.innerHTML = `
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
+                                    </span>
+                                `;
+                            }
 
                             // Cập nhật trạng thái
-                            const statusTd = row.querySelector('td:nth-child(6)');
-                            if (statusTd) {
-                                statusTd.innerHTML = a.newsStatus === true
+                            const statusCol = row.querySelector('td:nth-child(6)');
+                            if (statusCol) {
+                                statusCol.innerHTML = a.newsStatus === true
                                     ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
                                     : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
                             }
 
                             // Cập nhật tags
-                            const tagsTd = row.querySelector('td:nth-child(7)');
-                            if (tagsTd) {
+                            const tagsCol = row.querySelector('td:nth-child(7)');
+                            if (tagsCol) {
                                 if (a.tags && a.tags.length > 0) {
                                     const tagBadges = a.tags.slice(0, 3).map(t => `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`).join(' ');
                                     const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
-                                    tagsTd.innerHTML = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
+                                    tagsCol.innerHTML = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
                                 } else {
-                                    tagsTd.innerHTML = '<span class="text-muted small">—</span>';
+                                    tagsCol.innerHTML = '<span class="text-muted small">—</span>';
                                 }
+                            }
+
+                            // Finding 2 fix: Đồng bộ lại data-news-title trên nút xóa của dòng này
+                            const btnDelete = row.querySelector('.btn-delete-news');
+                            if (btnDelete) {
+                                btnDelete.setAttribute('data-news-title', a.newsTitle || a.headline);
                             }
                         }
                     } else {
-                        const msg = result?.message || 'Không thể cập nhật bài viết.';
+                        const msg = (result && result.message) ? result.message : 'Không thể cập nhật bài viết.';
                         if (editAlertText) editAlertText.textContent = msg;
                         if (editAlert) editAlert.classList.remove('d-none');
+
+                        // Finding 3 fix: Parse result.errors và highlight field-level inline error
+                        if (result && result.errors) {
+                            for (const [key, errList] of Object.entries(result.errors)) {
+                                const lowerKey = key.toLowerCase();
+                                const firstError = Array.isArray(errList) ? errList[0] : errList;
+
+                                if (lowerKey.includes('headline')) {
+                                    editHeadlineInput?.classList.add('is-invalid');
+                                    const el = document.getElementById('errorEditNewsHeadline');
+                                    if (el) { el.textContent = firstError; el.classList.remove('d-none'); }
+                                } else if (lowerKey.includes('category')) {
+                                    editCategorySelect?.classList.add('is-invalid');
+                                    const el = document.getElementById('errorEditNewsCategory');
+                                    if (el) { el.textContent = firstError; el.classList.remove('d-none'); }
+                                } else if (lowerKey.includes('title')) {
+                                    editTitleInput?.classList.add('is-invalid');
+                                    const el = document.getElementById('errorEditNewsTitle');
+                                    if (el) { el.textContent = firstError; el.classList.remove('d-none'); }
+                                } else if (lowerKey.includes('source')) {
+                                    editSourceInput?.classList.add('is-invalid');
+                                    const el = document.getElementById('errorEditNewsSource');
+                                    if (el) { el.textContent = firstError; el.classList.remove('d-none'); }
+                                } else if (lowerKey.includes('content')) {
+                                    editContentTextarea?.classList.add('is-invalid');
+                                    const el = document.getElementById('errorEditNewsContent');
+                                    if (el) { el.textContent = firstError; el.classList.remove('d-none'); }
+                                }
+                            }
+                        }
+
                         showToast(false, msg);
                     }
                 } catch (err) {
@@ -1569,7 +1621,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'RequestVerificationToken': token,
+                            'X-CSRF-TOKEN': getCsrfToken(),
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify({ newsArticleId: articleId })

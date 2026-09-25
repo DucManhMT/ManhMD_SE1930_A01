@@ -576,7 +576,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
   - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: Succeeded (0 Warnings, 0 Errors).
   - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: Succeeded (0 Warnings, 0 Errors).
   - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 92/92 Passed (100%) — gồm 5 tests acceptance criteria FUN-013.
-  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 76/76 Passed (100%) — gồm 3 tests handler/client FUN-013.
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 78/78 Passed (100%) — gồm 5 tests handler/client FUN-013.
 - UI/SQL/API evidence:
   - Kiểm tra 6/6 acceptance criteria qua test tự động và kiểm định luồng dữ liệu:
     1. CreatedBy/Date giữ nguyên: Khi Staff/Admin gọi `PUT /api/news/{id}`, giá trị `CreatedByID` và `CreatedDate` nguyên bản của bài viết được bảo toàn tuyệt đối, không bị ghi đè bởi người sửa hay thời gian sửa.
