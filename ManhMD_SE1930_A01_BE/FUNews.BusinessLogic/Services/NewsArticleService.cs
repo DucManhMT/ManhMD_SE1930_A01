@@ -262,5 +262,15 @@ public class NewsArticleService : INewsArticleService
         var createdDto = await GetByIdAsync(nextId, activeOnly: null, cancellationToken);
         return createdDto ?? throw new InvalidOperationException($"Không thể tải lại dữ liệu bài viết vừa nhân bản '{nextId}'.");
     }
+
+    public IQueryable<NewsArticleDto> GetMyArticlesQueryable(short authorId)
+    {
+        // FUN-015: Filter cố định CreatedByID = currentStaffId (AC 1, AC 2, AC 3)
+        return _articleRepository.GetQueryable().AsNoTracking()
+            .Where(a => a.CreatedByID == authorId)
+            .OrderByDescending(a => a.CreatedDate)
+            .ThenByDescending(a => a.NewsArticleID)
+            .Select(NewsArticleMappingHelper.ProjectToDto);
+    }
 }
 

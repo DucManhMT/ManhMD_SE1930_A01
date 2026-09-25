@@ -24,7 +24,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | DONE |
 | FUN-013 | Sửa và xóa bài viết | 012 | DONE |
 | FUN-014 | Nhân bản bài viết | 013 | DONE |
-| FUN-015 | Lịch sử bài do mình tạo | 013 | TODO |
+| FUN-015 | Lịch sử bài do mình tạo | 013 | DONE |
 | FUN-016 | Trang tin công khai và chi tiết | 013 | TODO |
 | FUN-017 | Tìm kiếm nâng cao | 016 | TODO |
 | FUN-018 | Tin liên quan | 016 | TODO |
@@ -634,7 +634,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-015 — Lịch sử bài do mình tạo
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 013
 - Actor: Staff
 - Điểm vào/phạm vi file: /staff/history; /api/news/mine
@@ -642,17 +642,36 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Acceptance criteria
 
-1. CreatedBy từ token không từ query.
-2. Filter không vượt owner scope.
-3. Dữ liệu Staff khác không xuất hiện.
-4. Không tạo bảng history hoặc giả lập version history.
+1. CreatedBy từ token không từ query: Endpoint `GET /api/news/mine` trích xuất `accountId` từ JWT token claim; không nhận tham số `createdById` từ query string hay request body.
+2. Filter không vượt owner scope: Bộ lọc OData query áp dụng trên IQueryable đã cố định `Where(a => a.CreatedByID == accountId)`; mọi điều kiện tìm kiếm, phân trang, lọc theo danh mục hay trạng thái không bao giờ vượt ra ngoài phạm vi sở hữu của Staff hiện tại.
+3. Dữ liệu Staff khác không xuất hiện: Đảm bảo cách ly dữ liệu hoàn toàn giữa các tài khoản Staff.
+4. Không tạo bảng history hoặc giả lập version history: Truy vấn trực tiếp trên bảng chuẩn `NewsArticle`, hiển thị thông tin bài viết và thông tin người sửa/thời điểm sửa cuối cùng (`LastEditorName`, `ModifiedDate`).
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/INewsArticleService.cs`: Khai báo `GetMyArticlesQueryable(short authorId)`.
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs`: Triển khai `GetMyArticlesQueryable` lọc theo `CreatedByID == authorId`.
+    - `ManhMD_SE1930_A01_BE/Controllers/NewsController.cs`: Thêm endpoint `GET /api/news/mine` đặt trước `GET /api/news/{id}`, bảo vệ bằng `[Authorize(Roles = "Staff")]`, áp dụng OData.
+  - Frontend:
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs` & `FUNewsApiClient.cs`: Khai báo và triển khai `GetMyNewsArticlesAsync`.
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/INewsClientService.cs` & `NewsClientService.cs`: Thêm `GetMyNewsArticlesAsync`.
+    - `ManhMD_SE1930_A01_FE/Pages/Staff/History.cshtml.cs` & `History.cshtml`: Màn hình giao diện Lịch sử bài viết cá nhân `/staff/history`, hỗ trợ bộ lọc (từ khóa, chuyên mục, trạng thái, khoảng ngày tạo, sắp xếp), hiển thị thông tin bài viết, ngày tạo và người sửa lần cuối (`LastEditorName`), phân trang đầy đủ, modal xem chi tiết bài viết (AJAX loaded).
+    - `ManhMD_SE1930_A01_FE/Pages/Staff/MyNews.cshtml.cs`: Điều hướng tự động về `/staff/history`.
+    - `ManhMD_SE1930_A01_FE/Pages/Shared/_Layout.cshtml`: Cập nhật liên kết navbar "Tin của tôi" trỏ về `/staff/history`.
+  - Tests:
+    - `tests/FUNews.Tests/NewsArticleHistoryTests.cs`: 6 tests tích hợp kiểm thử 4/4 ACs, owner scope, last modified info, phân quyền Anonymous 401 và Lecturer 403.
+    - `tests/FUNews.Client.Tests/HistoryRazorPageTests.cs`: 4 tests unit cho `HistoryModel` (tải danh mục & bài viết cá nhân, validate ngày, handler detail hợp lệ và rỗng).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 104 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 85 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - API `GET /api/news/mine` trả về danh sách OData các bài viết chỉ thuộc Staff hiện tại; chứa thông tin `CreatedByID`, `AuthorName`, `UpdatedByID`, `LastEditorName`, `ModifiedDate`.
+  - UI `/staff/history`: Hiển thị bảng bài viết cá nhân, cột lần sửa cuối hiển thị tên editor hoặc "Chưa chỉnh sửa", modal chi tiết xem toàn bộ bài viết, bộ lọc và phân trang hoạt động hoàn hảo.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-016 — Trang tin công khai và chi tiết
 

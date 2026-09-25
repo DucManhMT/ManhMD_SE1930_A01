@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace ManhMD_SE1930_A01_FE.Pages.Staff;
@@ -6,7 +7,8 @@ namespace ManhMD_SE1930_A01_FE.Pages.Staff;
 [Authorize(Roles = "Staff")]
 public class MyNewsModel : PageModel
 {
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return RedirectToPage("/Staff/History");
     }
 }

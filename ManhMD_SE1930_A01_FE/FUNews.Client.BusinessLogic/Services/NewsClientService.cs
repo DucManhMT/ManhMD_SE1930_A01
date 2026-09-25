@@ -41,5 +41,10 @@ public class NewsClientService : INewsClientService
     {
         return _apiClient.DuplicateNewsArticleAsync(id, cancellationToken);
     }
+
+    public Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetMyNewsArticlesAsync(odataQuery, cancellationToken);
+    }
 }
 

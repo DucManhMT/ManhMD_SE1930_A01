@@ -186,6 +186,12 @@ public class FUNewsApiClient : IFUNewsApiClient
         return duplicated ?? throw new InvalidOperationException("Máy chủ không trả về dữ liệu bài viết vừa nhân bản.");
     }
 
+    public Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    {
+        var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news/mine" : $"api/news/mine{FormatQuery(odataQuery)}";
+        return GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
+    }
+
     public Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/account" : $"api/account{FormatQuery(odataQuery)}";

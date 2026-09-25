@@ -1,0 +1,556 @@
+@page "/staff/history"
+@model ManhMD_SE1930_A01_FE.Pages.Staff.HistoryModel
+@{
+    ViewData["Title"] = "Lịch sử bài viết do mình tạo";
+}
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- 1. Tiêu đề và tổng quan -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item text-muted">Nhân viên (Staff)</li>
+                    <li class="breadcrumb-item active" aria-current="page">Lịch sử bài viết</li>
+                </ol>
+            </nav>
+            <h1 class="h4 fw-bold text-dark mb-0">
+                <i class="bi bi-clock-history text-primary me-2"></i>Lịch sử bài viết do mình tạo
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                Theo dõi toàn bộ bài viết cá nhân đã đăng trên FUNews và thông tin chỉnh sửa lần cuối.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold">
+                <i class="bi bi-person-badge me-1"></i>Staff Only
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold" id="badgeTotalHistoryCount">
+                Tổng: @Model.TotalCount bài viết
+            </span>
+            <a href="/staff/news" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-newspaper me-1"></i>Đến Quản lý bài viết
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. Thông báo lỗi (nếu có) -->
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- 3. Thanh tìm kiếm và bộ lọc (FUN-015: Filter cá nhân) -->
+    <div class="card card-fu shadow-sm mb-3">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-end" id="formFilterHistory">
+                <!-- 1. Từ khóa bài viết -->
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="inputSearchTerm" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-search me-1"></i>Từ khóa bài viết
+                    </label>
+                    <input type="text" class="form-control form-control-sm" id="inputSearchTerm" name="searchTerm"
+                           placeholder="Tìm theo tiêu đề hoặc tóm tắt..." value="@Model.SearchTerm" maxlength="150" />
+                </div>
+
+                <!-- 2. Chuyên mục -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="selectCategory" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-folder2-open me-1"></i>Chuyên mục
+                    </label>
+                    <select class="form-select form-select-sm" id="selectCategory" name="categoryId">
+                        <option value="">-- Tất cả chuyên mục --</option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.CategoryId" selected="@(Model.CategoryId == cat.CategoryId)">
+                                @cat.CategoryName @(cat.IsActive == false ? "(Tạm ẩn)" : "")
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 3. Trạng thái -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="selectStatus" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-toggle-on me-1"></i>Trạng thái
+                    </label>
+                    <select class="form-select form-select-sm" id="selectStatus" name="statusFilter">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="active" selected="@(string.Equals(Model.StatusFilter, "active", StringComparison.OrdinalIgnoreCase))">Đang hiển thị</option>
+                        <option value="inactive" selected="@(string.Equals(Model.StatusFilter, "inactive", StringComparison.OrdinalIgnoreCase))">Tạm ẩn</option>
+                    </select>
+                </div>
+
+                <!-- 4. Từ ngày tạo -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="inputStartDate" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-calendar-event me-1"></i>Từ ngày tạo
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="inputStartDate" name="startDate"
+                           value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <!-- 5. Đến ngày tạo -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="inputEndDate" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-calendar-check me-1"></i>Đến ngày tạo
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="inputEndDate" name="endDate"
+                           value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <!-- 6. Nút thao tác -->
+                <div class="col-12 col-sm-6 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill" title="Áp dụng tìm kiếm">
+                        <i class="bi bi-funnel-fill"></i> Lọc
+                    </button>
+                    <a href="/staff/history" class="btn btn-outline-secondary btn-sm" title="Đặt lại bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+
+                <!-- Giữ nguyên SortBy và PageSize khi submit -->
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Danh sách bài viết -->
+    <div class="card card-fu shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tableHistory">
+                <thead class="table-light text-secondary small text-uppercase">
+                    <tr>
+                        <th scope="col" class="text-center" style="width: 100px;">Mã bài</th>
+                        <th scope="col" style="min-width: 250px;">Tiêu đề & Tóm tắt</th>
+                        <th scope="col" style="width: 140px;">Chuyên mục</th>
+                        <th scope="col" class="text-center" style="width: 130px;">Trạng thái</th>
+                        <th scope="col" style="width: 150px;">Ngày tạo</th>
+                        <th scope="col" style="min-width: 180px;">Lần sửa cuối (Editor)</th>
+                        <th scope="col" style="width: 160px;">Thẻ tin (Tags)</th>
+                        <th scope="col" class="text-center" style="width: 110px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="tableHistoryBody">
+                    @if (Model.NewsArticles.Count == 0)
+                    {
+                        <tr id="rowEmptyHistory">
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder-x fs-1 d-block mb-2 text-secondary"></i>
+                                <span>Bạn chưa có bài viết nào hoặc không tìm thấy bài viết phù hợp với điều kiện lọc.</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var article in Model.NewsArticles)
+                        {
+                            <tr id="row-history-@article.NewsArticleId">
+                                <!-- Mã bài viết -->
+                                <td class="text-center fw-semibold text-muted small">
+                                    <span class="badge bg-light text-dark border">@article.NewsArticleId</span>
+                                </td>
+
+                                <!-- Tiêu đề & Headline -->
+                                <td>
+                                    <div class="fw-semibold text-dark mb-1 lh-sm">
+                                        @(string.IsNullOrWhiteSpace(article.NewsTitle) ? "Không có tiêu đề" : article.NewsTitle)
+                                    </div>
+                                    <div class="text-secondary small text-truncate" style="max-width: 320px;" title="@article.Headline">
+                                        @article.Headline
+                                    </div>
+                                </td>
+
+                                <!-- Chuyên mục -->
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-folder text-primary me-1"></i>@(article.CategoryName ?? "Chưa phân loại")
+                                    </span>
+                                </td>
+
+                                <!-- Trạng thái -->
+                                <td class="text-center">
+                                    @if (article.NewsStatus == true)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                                            <i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Ngày tạo -->
+                                <td class="small text-muted">
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    @(article.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+                                </td>
+
+                                <!-- Lần sửa cuối / Người sửa cuối (AC: Last modified info) -->
+                                <td>
+                                    @if (article.ModifiedDate.HasValue)
+                                    {
+                                        <div class="fw-semibold small text-dark mb-0">
+                                            <i class="bi bi-person-check text-info me-1"></i>@(article.LastEditorName ?? $"ID: {article.UpdatedById}")
+                                        </div>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-clock me-1"></i>@article.ModifiedDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border small px-2 py-1">
+                                            <i class="bi bi-dash me-1"></i>Chưa chỉnh sửa
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Thẻ tin -->
+                                <td>
+                                    @if (article.Tags != null && article.Tags.Count > 0)
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var tag in article.Tags.Take(3))
+                                            {
+                                                <span class="badge bg-light text-dark border px-2 py-0 small">#@tag.TagName</span>
+                                            }
+                                            @if (article.Tags.Count > 3)
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">
+                                                    +@(article.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+
+                                <!-- Thao tác: Chi tiết -->
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-history"
+                                                data-news-id="@article.NewsArticleId"
+                                                title="Xem chi tiết bài viết">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="/staff/news" class="btn btn-outline-secondary btn-sm"
+                                           title="Đến trang quản lý bài viết">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 5. Phân trang -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center py-2 px-3 gap-2 border-top">
+                <div class="small text-muted">
+                    Hiển thị trang <strong>@Model.PageIndex</strong> / <strong>@Model.TotalPages</strong> (Tổng cộng: <strong>@Model.TotalCount</strong> bài viết)
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <label for="selectPageSize" class="small text-muted mb-0">Hiển thị:</label>
+                    <select id="selectPageSize" class="form-select form-select-sm" style="width: 75px;" onchange="changePageSize(this.value)">
+                        <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                        <option value="20" selected="@(Model.PageSize == 20)">20</option>
+                        <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                    </select>
+
+                    <nav aria-label="Pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Trang đầu -->
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Page("/Staff/History", new {
+                                    searchTerm = Model.SearchTerm,
+                                    categoryId = Model.CategoryId,
+                                    statusFilter = Model.StatusFilter,
+                                    startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                    endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
+                                    sortBy = Model.SortBy,
+                                    pageIndex = 1,
+                                    pageSize = Model.PageSize
+                                })" aria-label="First">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+
+                            <!-- Trang trước -->
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Page("/Staff/History", new {
+                                    searchTerm = Model.SearchTerm,
+                                    categoryId = Model.CategoryId,
+                                    statusFilter = Model.StatusFilter,
+                                    startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                    endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
+                                    sortBy = Model.SortBy,
+                                    pageIndex = Model.PageIndex - 1,
+                                    pageSize = Model.PageSize
+                                })" aria-label="Previous">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            <!-- Các số trang lân cận -->
+                            @{
+                                int startPage = Math.Max(1, Model.PageIndex - 2);
+                                int endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                    <a class="page-link" href="@Url.Page("/Staff/History", new {
+                                        searchTerm = Model.SearchTerm,
+                                        categoryId = Model.CategoryId,
+                                        statusFilter = Model.StatusFilter,
+                                        startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                        endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
+                                        sortBy = Model.SortBy,
+                                        pageIndex = i,
+                                        pageSize = Model.PageSize
+                                    })">@i</a>
+                                </li>
+                            }
+
+                            <!-- Trang tiếp theo -->
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Page("/Staff/History", new {
+                                    searchTerm = Model.SearchTerm,
+                                    categoryId = Model.CategoryId,
+                                    statusFilter = Model.StatusFilter,
+                                    startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                    endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
+                                    sortBy = Model.SortBy,
+                                    pageIndex = Model.PageIndex + 1,
+                                    pageSize = Model.PageSize
+                                })" aria-label="Next">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+
+                            <!-- Trang cuối -->
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Page("/Staff/History", new {
+                                    searchTerm = Model.SearchTerm,
+                                    categoryId = Model.CategoryId,
+                                    statusFilter = Model.StatusFilter,
+                                    startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                    endDate = Model.EndDate?.ToString("yyyy-MM-dd"),
+                                    sortBy = Model.SortBy,
+                                    pageIndex = Model.TotalPages,
+                                    pageSize = Model.PageSize
+                                })" aria-label="Last">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL XEM CHI TIẾT BÀI VIẾT (READ-ONLY)
+     ========================================== -->
+<div class="modal fade" id="modalDetailHistory" tabindex="-1" aria-labelledby="modalDetailHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom pb-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="modalDetailHistoryLabel">
+                        <i class="bi bi-file-earmark-text text-primary me-2"></i>Chi tiết bài viết
+                    </h5>
+                    <small class="text-muted">Mã bài viết: <span id="detailArticleId" class="badge bg-light text-dark border"></span></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="spinnerDetailHistory" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">Đang nạp chi tiết bài viết...</p>
+                </div>
+
+                <div id="contentDetailHistory">
+                    <!-- Tiêu đề & Headline -->
+                    <div class="mb-3">
+                        <h4 id="detailTitle" class="fw-bold text-dark mb-2"></h4>
+                        <div id="detailHeadline" class="text-secondary fst-italic p-2 bg-light border-start border-3 border-primary rounded-end"></div>
+                    </div>
+
+                    <!-- Meta: Chuyên mục, Trạng thái, Tác giả, Ngày tạo, Lần sửa cuối -->
+                    <div class="row g-2 mb-3 p-3 bg-light rounded border">
+                        <div class="col-6 col-sm-4">
+                            <span class="text-muted small d-block">Chuyên mục:</span>
+                            <span id="detailCategory" class="badge bg-primary-subtle text-primary border border-primary-subtle"></span>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <span class="text-muted small d-block">Trạng thái:</span>
+                            <span id="detailStatus"></span>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <span class="text-muted small d-block">Nguồn tin:</span>
+                            <span id="detailSource" class="fw-semibold text-dark small"></span>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <span class="text-muted small d-block">Ngày tạo:</span>
+                            <span id="detailCreatedDate" class="small text-dark"></span>
+                        </div>
+                        <div class="col-12 col-sm-8">
+                            <span class="text-muted small d-block">Lần sửa cuối (Editor):</span>
+                            <span id="detailModifiedInfo" class="small text-dark"></span>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách Tags -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary mb-1">
+                            <i class="bi bi-tags me-1"></i>Thẻ tin:
+                        </label>
+                        <div id="detailTags" class="d-flex flex-wrap gap-1"></div>
+                    </div>
+
+                    <!-- Nội dung bài viết -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-secondary mb-1">
+                            <i class="bi bi-body-text me-1"></i>Nội dung:
+                        </label>
+                        <div id="detailContent" class="p-3 border rounded bg-white text-dark small" style="white-space: pre-wrap; max-height: 350px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalDetailEl = document.getElementById('modalDetailHistory');
+            const detailModal = modalDetailEl ? new bootstrap.Modal(modalDetailEl) : null;
+            const spinnerDetail = document.getElementById('spinnerDetailHistory');
+            const contentDetail = document.getElementById('contentDetailHistory');
+
+            const detailArticleId = document.getElementById('detailArticleId');
+            const detailTitle = document.getElementById('detailTitle');
+            const detailHeadline = document.getElementById('detailHeadline');
+            const detailCategory = document.getElementById('detailCategory');
+            const detailStatus = document.getElementById('detailStatus');
+            const detailSource = document.getElementById('detailSource');
+            const detailCreatedDate = document.getElementById('detailCreatedDate');
+            const detailModifiedInfo = document.getElementById('detailModifiedInfo');
+            const detailTags = document.getElementById('detailTags');
+            const detailContent = document.getElementById('detailContent');
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            document.querySelectorAll('.btn-view-history').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const newsId = this.getAttribute('data-news-id');
+                    if (!newsId) return;
+
+                    if (spinnerDetail) spinnerDetail.classList.remove('d-none');
+                    if (contentDetail) contentDetail.classList.add('d-none');
+                    detailModal?.show();
+
+                    try {
+                        const response = await fetch(`/staff/history?handler=Detail&id=${encodeURIComponent(newsId)}`, {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const result = await response.json();
+
+                        if (result && result.success && result.article) {
+                            const a = result.article;
+                            if (detailArticleId) detailArticleId.textContent = a.newsArticleId || newsId;
+                            if (detailTitle) detailTitle.textContent = a.newsTitle || 'Không có tiêu đề';
+                            if (detailHeadline) detailHeadline.textContent = a.headline || '—';
+                            if (detailCategory) detailCategory.textContent = a.categoryName || 'Chưa phân loại';
+                            if (detailSource) detailSource.textContent = a.newsSource || 'Nội bộ';
+
+                            if (detailStatus) {
+                                detailStatus.innerHTML = a.newsStatus === true
+                                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                    : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+                            }
+
+                            if (detailCreatedDate) {
+                                detailCreatedDate.textContent = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : '—';
+                            }
+
+                            if (detailModifiedInfo) {
+                                if (a.modifiedDate) {
+                                    const editor = a.lastEditorName || (a.updatedById ? `ID: ${a.updatedById}` : '—');
+                                    detailModifiedInfo.innerHTML = `<strong>${escapeHtml(editor)}</strong> vào lúc ${new Date(a.modifiedDate).toLocaleString('vi-VN')}`;
+                                } else {
+                                    detailModifiedInfo.innerHTML = '<span class="text-muted">Chưa chỉnh sửa lần nào</span>';
+                                }
+                            }
+
+                            if (detailTags) {
+                                if (a.tags && a.tags.length > 0) {
+                                    detailTags.innerHTML = a.tags.map(t =>
+                                        `<span class="badge bg-light text-dark border px-2 py-1 small">#${escapeHtml(t.tagName)}</span>`
+                                    ).join(' ');
+                                } else {
+                                    detailTags.innerHTML = '<span class="text-muted small">Không có thẻ tin nào.</span>';
+                                }
+                            }
+
+                            if (detailContent) {
+                                detailContent.textContent = a.newsContent || 'Chưa có nội dung chi tiết.';
+                            }
+
+                            if (spinnerDetail) spinnerDetail.classList.add('d-none');
+                            if (contentDetail) contentDetail.classList.remove('d-none');
+                        } else {
+                            if (spinnerDetail) spinnerDetail.classList.add('d-none');
+                            alert(result?.message || 'Không thể tải chi tiết bài viết.');
+                            detailModal?.hide();
+                        }
+                    } catch (err) {
+                        if (spinnerDetail) spinnerDetail.classList.add('d-none');
+                        alert('Lỗi kết nối khi tải chi tiết bài viết.');
+                        detailModal?.hide();
+                    }
+                });
+            });
+        });
+
+        function changePageSize(size) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pageSize', size);
+            url.searchParams.set('pageIndex', '1');
+            window.location.href = url.toString();
+        }
+    </script>
+}

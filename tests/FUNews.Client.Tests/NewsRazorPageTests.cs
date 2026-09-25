@@ -164,6 +164,22 @@ public class NewsRazorPageTests
             Articles.Add(duplicated);
             return Task.FromResult(duplicated);
         }
+
+        public Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+        {
+            if (ShouldFailGet)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.InternalServerError, "Không thể kết nối đến máy chủ.");
+            }
+
+            // Only return articles created by current staff (3)
+            var myArticles = Articles.Where(a => a.CreatedById == 3).ToList();
+            return Task.FromResult(new ODataEnvelope<NewsArticleApiModel>
+            {
+                Count = myArticles.Count,
+                Value = myArticles
+            });
+        }
     }
 
     private class FakeCategoryClientService : ICategoryClientService

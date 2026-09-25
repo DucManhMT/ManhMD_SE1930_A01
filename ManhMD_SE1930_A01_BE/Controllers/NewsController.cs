@@ -32,6 +32,27 @@ public class NewsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("mine")]
+    [Authorize(Roles = "Staff")]
+    public ActionResult<ODataResponse<NewsArticleDto>> GetMyArticles(ODataQueryOptions<NewsArticleDto> queryOptions)
+    {
+        var accountId = GetCurrentAccountId();
+        if (!accountId.HasValue)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Không xác định danh tính",
+                Detail = "Không tìm thấy thông tin tài khoản nhân viên hợp lệ từ phiên đăng nhập."
+            });
+        }
+
+        // FUN-015: AC 1 - CreatedBy từ token không từ query; AC 2 - Filter không vượt owner scope; AC 3 - Dữ liệu Staff khác không xuất hiện
+        var query = _newsService.GetMyArticlesQueryable(accountId.Value);
+        var result = ODataQueryHelper.ApplyOData(query, queryOptions);
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<ActionResult<NewsArticleDto>> GetById(string id, CancellationToken cancellationToken)
