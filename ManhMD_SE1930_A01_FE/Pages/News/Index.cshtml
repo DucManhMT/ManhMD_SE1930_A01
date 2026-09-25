@@ -1,0 +1,254 @@
+@page "/news"
+@model ManhMD_SE1930_A01_FE.Pages.News.IndexModel
+@{
+    ViewData["Title"] = "Tin tức mới nhất";
+}
+
+<div class="container py-3" style="max-width: 1200px;">
+    <!-- 1. Header Bảng tin -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 pb-2 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Bảng tin tức</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-dark mb-0">
+                <i class="bi bi-newspaper text-primary me-2"></i>Bảng tin tức FUNews
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                Cập nhật tin tức học thuật, sự kiện và thông báo chính thức mới nhất.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold">
+                <i class="bi bi-broadcast me-1"></i>Công khai
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold">
+                Tổng: @Model.TotalCount bài viết
+            </span>
+        </div>
+    </div>
+
+    <!-- 2. Thông báo lỗi (nếu có) -->
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- 3. Thanh tìm kiếm và bộ lọc nhanh -->
+    <div class="card card-fu shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-end" id="formFilterNews">
+                <!-- Từ khóa -->
+                <div class="col-12 col-md-5">
+                    <label for="inputSearchTerm" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-search me-1"></i>Tìm kiếm tin tức
+                    </label>
+                    <input type="text" class="form-control form-control-sm" id="inputSearchTerm" name="searchTerm"
+                           placeholder="Nhập tiêu đề hoặc tóm tắt..." value="@Model.SearchTerm" maxlength="150" />
+                </div>
+
+                <!-- Chuyên mục -->
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="selectCategory" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-folder2-open me-1"></i>Chuyên mục
+                    </label>
+                    <select class="form-select form-select-sm" id="selectCategory" name="categoryId">
+                        <option value="">-- Tất cả chuyên mục --</option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.CategoryId" selected="@(Model.CategoryId == cat.CategoryId)">
+                                @cat.CategoryName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Sắp xếp -->
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="selectSortBy" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-sort-down me-1"></i>Sắp xếp
+                    </label>
+                    <select class="form-select form-select-sm" id="selectSortBy" name="sortBy">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.SortBy))">Mới nhất</option>
+                        <option value="date_asc" selected="@(string.Equals(Model.SortBy, "date_asc", StringComparison.OrdinalIgnoreCase))">Cũ nhất</option>
+                        <option value="title_asc" selected="@(string.Equals(Model.SortBy, "title_asc", StringComparison.OrdinalIgnoreCase))">Tiêu đề (A-Z)</option>
+                        <option value="title_desc" selected="@(string.Equals(Model.SortBy, "title_desc", StringComparison.OrdinalIgnoreCase))">Tiêu đề (Z-A)</option>
+                    </select>
+                </div>
+
+                <!-- Nút thao tác -->
+                <div class="col-12 col-md-2 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                        <i class="bi bi-funnel-fill me-1"></i>Tìm
+                    </button>
+                    <a href="/news" class="btn btn-outline-secondary btn-sm" title="Đặt lại bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Danh sách bài viết công khai -->
+    @if (Model.NewsArticles.Count == 0)
+    {
+        <div class="card card-fu shadow-sm p-5 text-center my-4">
+            <i class="bi bi-journal-x fs-1 text-secondary mb-2"></i>
+            <h4 class="h5 fw-bold text-dark mb-1">Không tìm thấy bài viết tin tức nào</h4>
+            <p class="text-muted small mb-3">Hiện chưa có tin tức nào phù hợp với từ khóa hoặc chuyên mục bạn đã chọn.</p>
+            <div>
+                <a href="/news" class="btn btn-outline-primary btn-sm">Xem tất cả tin tức</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-4">
+            @foreach (var article in Model.NewsArticles)
+            {
+                <div class="col-12 col-md-6">
+                    <div class="card card-fu shadow-sm h-100 d-flex flex-column border">
+                        <div class="card-body d-flex flex-column p-4">
+                            <!-- Chuyên mục & Ngày tạo -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">
+                                    <i class="bi bi-folder me-1"></i>@(article.CategoryName ?? "Tin tức")
+                                </span>
+                                <span class="text-muted small">
+                                    <i class="bi bi-calendar3 me-1"></i>@(article.CreatedDate?.ToString("dd/MM/yyyy") ?? "Mới đăng")
+                                </span>
+                            </div>
+
+                            <!-- Tiêu đề -->
+                            <h2 class="h5 fw-bold text-dark mb-2">
+                                <a href="/news/@article.NewsArticleId" class="text-decoration-none text-dark hover-primary">
+                                    @(string.IsNullOrWhiteSpace(article.NewsTitle) ? article.Headline : article.NewsTitle)
+                                </a>
+                            </h2>
+
+                            <!-- Headline / Tóm tắt -->
+                            <p class="text-secondary small flex-grow-1 mb-3 lh-base">
+                                @article.Headline
+                            </p>
+
+                            <!-- Thẻ tin (Tags) -->
+                            @if (article.Tags != null && article.Tags.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    @foreach (var tag in article.Tags.Take(4))
+                                    {
+                                        <span class="badge bg-light text-dark border px-2 py-0 small">#@tag.TagName</span>
+                                    }
+                                </div>
+                            }
+
+                            <!-- Footer card: Tác giả & CTA Đọc tiếp -->
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto">
+                                <span class="small text-muted">
+                                    <i class="bi bi-person me-1"></i>@(article.AuthorName ?? "Ban Biên Tập")
+                                </span>
+                                <a href="/news/@article.NewsArticleId" class="btn btn-outline-primary btn-sm">
+                                    Đọc bài <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- 5. Phân trang -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="d-flex flex-wrap justify-content-between align-items-center py-3 border-top gap-2">
+                <div class="small text-muted">
+                    Trang <strong>@Model.PageIndex</strong> / <strong>@Model.TotalPages</strong> (Tổng cộng: <strong>@Model.TotalCount</strong> tin)
+                </div>
+
+                <nav aria-label="News Pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        <!-- Trang đầu -->
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Page("/News/Index", new {
+                                searchTerm = Model.SearchTerm,
+                                categoryId = Model.CategoryId,
+                                sortBy = Model.SortBy,
+                                pageIndex = 1,
+                                pageSize = Model.PageSize
+                            })" aria-label="First">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Trang trước -->
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Page("/News/Index", new {
+                                searchTerm = Model.SearchTerm,
+                                categoryId = Model.CategoryId,
+                                sortBy = Model.SortBy,
+                                pageIndex = Model.PageIndex - 1,
+                                pageSize = Model.PageSize
+                            })" aria-label="Previous">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Các số trang lân cận -->
+                        @{
+                            int startPage = Math.Max(1, Model.PageIndex - 2);
+                            int endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                <a class="page-link" href="@Url.Page("/News/Index", new {
+                                    searchTerm = Model.SearchTerm,
+                                    categoryId = Model.CategoryId,
+                                    sortBy = Model.SortBy,
+                                    pageIndex = i,
+                                    pageSize = Model.PageSize
+                                })">@i</a>
+                            </li>
+                        }
+
+                        <!-- Trang kế tiếp -->
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Page("/News/Index", new {
+                                searchTerm = Model.SearchTerm,
+                                categoryId = Model.CategoryId,
+                                sortBy = Model.SortBy,
+                                pageIndex = Model.PageIndex + 1,
+                                pageSize = Model.PageSize
+                            })" aria-label="Next">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                        <!-- Trang cuối -->
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Page("/News/Index", new {
+                                searchTerm = Model.SearchTerm,
+                                categoryId = Model.CategoryId,
+                                sortBy = Model.SortBy,
+                                pageIndex = Model.TotalPages,
+                                pageSize = Model.PageSize
+                            })" aria-label="Last">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    }
+</div>

@@ -25,7 +25,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-013 | Sửa và xóa bài viết | 012 | DONE |
 | FUN-014 | Nhân bản bài viết | 013 | DONE |
 | FUN-015 | Lịch sử bài do mình tạo | 013 | DONE |
-| FUN-016 | Trang tin công khai và chi tiết | 013 | TODO |
+| FUN-016 | Trang tin công khai và chi tiết | 013 | DONE |
 | FUN-017 | Tìm kiếm nâng cao | 016 | TODO |
 | FUN-018 | Tin liên quan | 016 | TODO |
 | FUN-019 | Báo cáo và audit cuối | 013 | TODO |
@@ -675,7 +675,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-016 — Trang tin công khai và chi tiết
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 013
 - Actor: Anonymous/Lecturer
 - Điểm vào/phạm vi file: /news; /news/{id}
@@ -683,19 +683,35 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Acceptance criteria
 
-1. Không cần login.
-2. Inactive detail trả 404.
-3. Không lộ inactive qua count.
-4. Encode plain text.
-5. Empty/error/loading hợp lý.
-6. Responsive và route thật.
+1. Không cần login: Anonymous và Lecturer đều xem được danh sách tin công khai `/news` và chi tiết bài viết `/news/{id}` qua public layout.
+2. Inactive detail trả 404: Bài viết có `NewsStatus == false` (hoặc không tồn tại) khi Anonymous / Lecturer truy cập chi tiết sẽ nhận kết quả 404 Not Found, không để lộ nội dung tin nháp/tạm ẩn.
+3. Không lộ inactive qua count: Danh sách tin tức công khai và tổng số `@odata.count` chỉ đếm và trả về các bài viết `NewsStatus == true` (Active).
+4. Encode plain text: Tiêu đề, headline, nguồn tin và toàn bộ nội dung bài viết được render an toàn dưới dạng plain text encoding, giữ xuống dòng tự nhiên, không chứa HTML injection hay XSS.
+5. Empty/error/loading hợp lý: Trạng thái trống (không tìm thấy tin) và lỗi kết nối API được xử lý thân thiện, có nút quay lại.
+6. Responsive và route thật: Route thật `/news` và `/news/{id}` hiển thị đẹp mắt, thích ứng tốt trên mobile và desktop (container 1200px cho danh sách, 800px cho bài viết theo Design Standard).
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Frontend:
+    - `ManhMD_SE1930_A01_FE/Pages/News/Index.cshtml.cs` & `Index.cshtml`: Màn hình danh sách tin tức công khai `/news` (AllowAnonymous), hiển thị thẻ chuyên mục, ngày đăng, tiêu đề, tóm tắt, tác giả, thẻ tin, nút đọc bài và phân trang.
+    - `ManhMD_SE1930_A01_FE/Pages/News/Detail.cshtml.cs` & `Detail.cshtml`: Màn hình chi tiết bài viết công khai `/news/{id}` (AllowAnonymous), kiểm tra bài viết Active (nếu Inactive hoặc không tồn tại trả về 404 NotFound), hiển thị nội dung plain text an toàn, breadcrumb, tác giả, nguồn tin, tags và tối đa 3 bài viết liên quan cùng chuyên mục.
+    - `ManhMD_SE1930_A01_FE/Pages/Index.cshtml`: Cập nhật nút CTA trỏ tới `/news`.
+    - `ManhMD_SE1930_A01_FE/Pages/Shared/_Layout.cshtml`: Cập nhật menu "Tin tức" cho Anonymous và Staff trỏ về `/news`.
+  - Backend:
+    - `ManhMD_SE1930_A01_BE/Controllers/NewsController.cs`: Đã bảo vệ chặt chẽ `Get` và `GetById` cho Anonymous/Lecturer chỉ truy cập các bài viết Active, Inactive trả 404.
+  - Tests:
+    - `tests/FUNews.Tests/NewsArticlePublicTests.cs`: 3 tests tích hợp kiểm thử truy cập không cần login, chặn tin Inactive trả 404, và không lộ tin Inactive qua count/list.
+    - `tests/FUNews.Client.Tests/NewsPublicPageTests.cs`: 4 tests unit kiểm thử `IndexModel` và `DetailModel` (tải tin Active, Inactive trả 404, ID không tồn tại trả 404).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 107 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 89 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - API: `GET /api/news` và `GET /api/news/{id}` cho phép Anonymous/Lecturer đọc các bài viết Active; trả về 404 cho các bài viết `NewsStatus == false`.
+  - UI: Giao diện `/news` và `/news/{id}` hoàn thiện chuẩn responsive Bootstrap 5, plain-text an toàn chống XSS, breadcrumb rõ ràng.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-017 — Tìm kiếm nâng cao
 

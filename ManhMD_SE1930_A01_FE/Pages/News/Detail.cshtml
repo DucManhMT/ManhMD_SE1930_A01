@@ -1,0 +1,135 @@
+@page "/news/{id}"
+@model ManhMD_SE1930_A01_FE.Pages.News.DetailModel
+@{
+    var title = string.IsNullOrWhiteSpace(Model.Article.NewsTitle) ? Model.Article.Headline : Model.Article.NewsTitle;
+    ViewData["Title"] = title;
+}
+
+<div class="container py-4" style="max-width: 860px;">
+    <!-- 1. Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/news" class="text-decoration-none">Tin tức</a></li>
+            @if (!string.IsNullOrWhiteSpace(Model.Article.CategoryName))
+            {
+                <li class="breadcrumb-item text-muted">@Model.Article.CategoryName</li>
+            }
+            <li class="breadcrumb-item active text-truncate" style="max-width: 280px;" aria-current="page">@title</li>
+        </ol>
+    </nav>
+
+    <!-- 2. Nội dung bài viết (Design standard: tối đa 800px, plain text encoding an toàn) -->
+    <article class="card card-fu shadow-sm p-4 p-md-5 mb-4">
+        <!-- Chuyên mục & Ngày đăng -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 fs-6">
+                <i class="bi bi-folder-fill me-1"></i>@(Model.Article.CategoryName ?? "Tin tức chung")
+            </span>
+            <span class="text-muted small">
+                <i class="bi bi-calendar3 me-1"></i>
+                @(Model.Article.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+            </span>
+        </div>
+
+        <!-- Tiêu đề chính -->
+        <h1 class="h2 fw-bold text-dark mb-3 lh-sm">
+            @title
+        </h1>
+
+        <!-- Tác giả & Nguồn tin -->
+        <div class="d-flex flex-wrap align-items-center gap-3 text-muted small mb-4 py-2 px-3 bg-light rounded border">
+            <div>
+                <i class="bi bi-person-circle text-primary me-1"></i>
+                Tác giả: <strong class="text-dark">@(Model.Article.AuthorName ?? "Ban Biên Tập")</strong>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Article.NewsSource))
+            {
+                <div class="border-start ps-3">
+                    <i class="bi bi-link-45deg me-1"></i>
+                    Nguồn tin: <span class="text-dark">@Model.Article.NewsSource</span>
+                </div>
+            }
+            <div class="border-start ps-3 ms-auto">
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="bi bi-check-circle-fill me-1"></i>Đã xuất bản
+                </span>
+            </div>
+        </div>
+
+        <!-- Tóm tắt bài viết (Headline) -->
+        <div class="p-3 mb-4 bg-light border-start border-4 border-primary rounded-end">
+            <p class="fs-6 fw-semibold text-secondary mb-0 lh-base">
+                @Model.Article.Headline
+            </p>
+        </div>
+
+        <!-- Nội dung bài viết chi tiết (AC 4: Encode plain text, giữ định dạng xuống dòng an toàn) -->
+        <div class="article-content text-dark mb-4 fs-6" style="white-space: pre-line; line-height: 1.85;">
+            @Model.Article.NewsContent
+        </div>
+
+        <!-- Thẻ tin (Tags) -->
+        @if (Model.Article.Tags != null && Model.Article.Tags.Count > 0)
+        {
+            <div class="pt-3 border-top mb-3">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="small fw-semibold text-secondary">
+                        <i class="bi bi-tags-fill me-1"></i>Thẻ tin:
+                    </span>
+                    @foreach (var tag in Model.Article.Tags)
+                    {
+                        <span class="badge bg-light text-dark border px-2 py-1 small">
+                            #@tag.TagName
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Nút điều hướng -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
+            <a href="/news" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách tin tức
+            </a>
+            <a href="/search" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-search me-1"></i>Tìm kiếm tin tức khác
+            </a>
+        </div>
+    </article>
+
+    <!-- 3. Tin liên quan cùng chuyên mục (tối đa 3 related theo Design Standard) -->
+    @if (Model.RelatedArticles != null && Model.RelatedArticles.Count > 0)
+    {
+        <div class="mt-4">
+            <h3 class="h5 fw-bold text-dark mb-3">
+                <i class="bi bi-collection text-primary me-2"></i>Tin cùng chuyên mục
+            </h3>
+            <div class="row g-3">
+                @foreach (var related in Model.RelatedArticles)
+                {
+                    <div class="col-12 col-md-4">
+                        <div class="card card-fu shadow-sm h-100 d-flex flex-column border">
+                            <div class="card-body d-flex flex-column p-3">
+                                <span class="text-muted small mb-1">
+                                    <i class="bi bi-calendar3 me-1"></i>@(related.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")
+                                </span>
+                                <h4 class="h6 fw-bold mb-2">
+                                    <a href="/news/@related.NewsArticleId" class="text-decoration-none text-dark hover-primary line-clamp-2">
+                                        @(string.IsNullOrWhiteSpace(related.NewsTitle) ? related.Headline : related.NewsTitle)
+                                    </a>
+                                </h4>
+                                <p class="text-secondary small text-truncate mb-3 mt-auto">
+                                    @related.Headline
+                                </p>
+                                <a href="/news/@related.NewsArticleId" class="btn btn-outline-primary btn-sm mt-auto w-100">
+                                    Đọc bài <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
