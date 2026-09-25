@@ -105,12 +105,12 @@
                 </div>
 
                 <!-- 6. Nút thao tác -->
-                <div class="col-12 col-sm-6 col-md-1 d-flex gap-1">
+                <div class="col-12 col-sm-6 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm flex-fill" title="Áp dụng tìm kiếm">
-                        <i class="bi bi-funnel-fill"></i> Lọc
+                        <i class="bi bi-funnel-fill me-1"></i>Lọc
                     </button>
                     <a href="/staff/history" class="btn btn-outline-secondary btn-sm" title="Đặt lại bộ lọc">
-                        <i class="bi bi-arrow-counterclockwise"></i>
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Đặt lại
                     </a>
                 </div>
 
@@ -134,7 +134,7 @@
                         <th scope="col" style="width: 150px;">Ngày tạo</th>
                         <th scope="col" style="min-width: 180px;">Lần sửa cuối (Editor)</th>
                         <th scope="col" style="width: 160px;">Thẻ tin (Tags)</th>
-                        <th scope="col" class="text-center" style="width: 110px;">Thao tác</th>
+                        <th scope="col" class="text-center" style="min-width: 170px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tableHistoryBody">
@@ -240,15 +240,15 @@
 
                                 <!-- Thao tác: Chi tiết -->
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-history"
+                                    <div class="d-inline-flex gap-1">
+                                        <button type="button" class="btn btn-outline-info btn-sm btn-view-history"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Xem chi tiết bài viết">
-                                            <i class="bi bi-eye"></i>
+                                            <i class="bi bi-eye me-1"></i>Xem
                                         </button>
                                         <a href="/staff/news" class="btn btn-outline-secondary btn-sm"
                                            title="Đến trang quản lý bài viết">
-                                            <i class="bi bi-pencil-square"></i>
+                                            <i class="bi bi-pencil-square me-1"></i>Quản lý
                                         </a>
                                     </div>
                                 </td>

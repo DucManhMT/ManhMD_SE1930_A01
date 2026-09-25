@@ -84,7 +84,7 @@
                         <th scope="col">Họ và tên</th>
                         <th scope="col">Email đăng nhập</th>
                         <th scope="col" style="width: 170px;">Vai trò</th>
-                        <th scope="col" style="width: 140px;" class="text-center">Thao tác</th>
+                        <th scope="col" style="min-width: 150px;" class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tableAccountsBody">
@@ -121,12 +121,12 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="d-inline-flex gap-1">
                                         <button type="button" class="btn btn-outline-primary btn-sm btn-edit-account" data-account-id="@account.AccountId" title="Chỉnh sửa tài khoản">
-                                            <i class="bi bi-pencil"></i>
+                                            <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm btn-delete-account" data-account-id="@account.AccountId" title="Xóa tài khoản">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash me-1"></i>Xóa
                                         </button>
                                     </div>
                                 </td>
@@ -898,12 +898,12 @@
                     <td><span class="text-body font-monospace small cell-account-email">${escapeHtml(acc.accountEmail)}</span></td>
                     <td class="cell-account-role">${roleBadge}</td>
                     <td class="text-center">
-                        <div class="btn-group btn-group-sm" role="group">
+                        <div class="d-inline-flex gap-1">
                             <button type="button" class="btn btn-outline-primary btn-sm btn-edit-account" data-account-id="${acc.accountId}" title="Chỉnh sửa tài khoản">
-                                <i class="bi bi-pencil"></i>
+                                <i class="bi bi-pencil me-1"></i>Sửa
                             </button>
                             <button type="button" class="btn btn-outline-danger btn-sm btn-delete-account" data-account-id="${acc.accountId}" title="Xóa tài khoản">
-                                <i class="bi bi-trash"></i>
+                                <i class="bi bi-trash me-1"></i>Xóa
                             </button>
                         </div>
                     </td>

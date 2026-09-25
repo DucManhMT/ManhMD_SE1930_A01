@@ -86,7 +86,7 @@
                         <th scope="col" style="min-width: 160px;">Danh mục cha</th>
                         <th scope="col" style="width: 120px;" class="text-center">Số bài viết</th>
                         <th scope="col" style="width: 130px;" class="text-center">Trạng thái</th>
-                        <th scope="col" style="width: 120px;" class="text-center">Thao tác</th>
+                        <th scope="col" style="min-width: 150px;" class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tableCategoriesBody">
@@ -141,12 +141,12 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="d-inline-flex gap-1">
                                         <button type="button" class="btn btn-outline-primary btn-sm btn-edit-category" data-category-id="@cat.CategoryId" title="Chỉnh sửa chuyên mục">
-                                            <i class="bi bi-pencil"></i>
+                                            <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm btn-delete-category" data-category-id="@cat.CategoryId" title="Xóa chuyên mục">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash me-1"></i>Xóa
                                         </button>
                                     </div>
                                 </td>
@@ -871,12 +871,12 @@
                     </td>
                     <td class="text-center cell-category-status">${statusBadge}</td>
                     <td class="text-center">
-                        <div class="btn-group btn-group-sm" role="group">
+                        <div class="d-inline-flex gap-1">
                             <button type="button" class="btn btn-outline-primary btn-sm btn-edit-category" data-category-id="${cat.categoryId}" title="Chỉnh sửa chuyên mục">
-                                <i class="bi bi-pencil"></i>
+                                <i class="bi bi-pencil me-1"></i>Sửa
                             </button>
                             <button type="button" class="btn btn-outline-danger btn-sm btn-delete-category" data-category-id="${cat.categoryId}" title="Xóa chuyên mục">
-                                <i class="bi bi-trash"></i>
+                                <i class="bi bi-trash me-1"></i>Xóa
                             </button>
                         </div>
                     </td>

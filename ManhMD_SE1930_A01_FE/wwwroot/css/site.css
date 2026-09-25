@@ -68,3 +68,32 @@ footer.footer-fu {
     color: var(--fu-muted);
     font-size: 14px;
 }
+
+/* Fallback styling for Bootstrap 5.1 compatibility */
+.bg-info-subtle {
+    background-color: #e0f2fe !important;
+}
+
+.text-info-emphasis {
+    color: #0369a1 !important;
+}
+
+.bg-secondary-subtle {
+    background-color: #f1f5f9 !important;
+}
+
+.text-secondary-emphasis {
+    color: #334155 !important;
+}
+
+.bg-success-subtle {
+    background-color: #dcfce7 !important;
+}
+
+.bg-danger-subtle {
+    background-color: #fee2e2 !important;
+}
+
+.bg-primary-subtle {
+    background-color: #e0e7ff !important;
+}

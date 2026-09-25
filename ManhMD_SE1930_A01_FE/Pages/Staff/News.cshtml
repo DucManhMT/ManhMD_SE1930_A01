@@ -215,7 +215,7 @@
                         <th scope="col" style="width: 130px;">Ngày tạo</th>
                         <th scope="col" style="width: 120px;" class="text-center">Trạng thái</th>
                         <th scope="col" style="width: 180px;">Thẻ tin (Tags)</th>
-                        <th scope="col" style="width: 145px;" class="text-center">Thao tác</th>
+                        <th scope="col" style="min-width: 290px;" class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tableNewsBody">
@@ -320,27 +320,27 @@
 
                                 <!-- Thao tác (AC: Chi tiết, Nhân bản, Sửa, Xóa) -->
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
+                                    <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Xem chi tiết bài viết">
-                                            <i class="bi bi-eye"></i>
+                                            <i class="bi bi-eye me-1"></i>Xem
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Nhân bản bài viết">
-                                            <i class="bi bi-files"></i>
+                                            <i class="bi bi-files me-1"></i>Nhân bản
                                         </button>
-                                        <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
+                                        <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
                                                 data-news-id="@article.NewsArticleId"
-                                                title="Sửa bài viết">
-                                            <i class="bi bi-pencil"></i>
+                                                title="Chỉnh sửa bài viết">
+                                            <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 data-news-title="@(article.NewsTitle ?? article.Headline)"
                                                 title="Xóa bài viết">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash me-1"></i>Xóa
                                         </button>
                                     </div>
                                 </td>
@@ -1173,27 +1173,27 @@
                                 <td class="text-center">${statusBadge}</td>
                                 <td>${tagsHtml}</td>
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
+                                    <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Xem chi tiết bài viết">
-                                            <i class="bi bi-eye"></i>
+                                            <i class="bi bi-eye me-1"></i>Xem
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Nhân bản bài viết">
-                                            <i class="bi bi-files"></i>
+                                            <i class="bi bi-files me-1"></i>Nhân bản
                                         </button>
-                                        <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
+                                        <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
-                                                title="Sửa bài viết">
-                                            <i class="bi bi-pencil"></i>
+                                                title="Chỉnh sửa bài viết">
+                                            <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 data-news-title="${escapeHtml(a.newsTitle || a.headline)}"
                                                 title="Xóa bài viết">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash me-1"></i>Xóa
                                         </button>
                                     </div>
                                 </td>
@@ -1503,27 +1503,27 @@
                                         <td class="text-center">${statusBadge}</td>
                                         <td>${tagsHtml}</td>
                                         <td class="text-center">
-                                            <div class="d-flex justify-content-center gap-1">
-                                                <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
+                                            <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                                <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         title="Xem chi tiết bài viết">
-                                                    <i class="bi bi-eye"></i>
+                                                    <i class="bi bi-eye me-1"></i>Xem
                                                 </button>
                                                 <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         title="Nhân bản bài viết">
-                                                    <i class="bi bi-files"></i>
+                                                    <i class="bi bi-files me-1"></i>Nhân bản
                                                 </button>
-                                                <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
+                                                <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
-                                                        title="Sửa bài viết">
-                                                    <i class="bi bi-pencil"></i>
+                                                        title="Chỉnh sửa bài viết">
+                                                    <i class="bi bi-pencil me-1"></i>Sửa
                                                 </button>
                                                 <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         data-news-title="${escapeHtml(a.newsTitle || a.headline)}"
                                                         title="Xóa bài viết">
-                                                    <i class="bi bi-trash"></i>
+                                                    <i class="bi bi-trash me-1"></i>Xóa
                                                 </button>
                                             </div>
                                         </td>

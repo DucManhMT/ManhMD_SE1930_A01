@@ -1,7 +1,16 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_FE\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{59913638-B3E2-40FC-B1C0-30EA7292FB5E}|ManhMD_SE1930_A01_FE.csproj|e:\\ide\\my_project\\prn232\\ass01\\manhmd_se1930_a01\\manhmd_se1930_a01_fe\\wwwroot\\css\\site.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{59913638-B3E2-40FC-B1C0-30EA7292FB5E}|ManhMD_SE1930_A01_FE.csproj|solutionrelative:wwwroot\\css\\site.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{59913638-B3E2-40FC-B1C0-30EA7292FB5E}|ManhMD_SE1930_A01_FE.csproj|e:\\ide\\my_project\\prn232\\ass01\\manhmd_se1930_a01\\manhmd_se1930_a01_fe\\pages\\admin\\accounts.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{59913638-B3E2-40FC-B1C0-30EA7292FB5E}|ManhMD_SE1930_A01_FE.csproj|solutionrelative:pages\\admin\\accounts.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 14,
           "Children": [
             {
               "$type": "Bookmark",
@@ -66,6 +75,32 @@
             {
               "$type": "Bookmark",
               "Name": "ST:7:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "site.css",
+              "DocumentMoniker": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_FE\\wwwroot\\css\\site.css",
+              "RelativeDocumentMoniker": "wwwroot\\css\\site.css",
+              "ToolTip": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_FE\\wwwroot\\css\\site.css",
+              "RelativeToolTip": "wwwroot\\css\\site.css",
+              "ViewState": "AgIAAD8AAAAAAAAAAAAIwEwAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-09-25T01:28:18.431Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Accounts.cshtml",
+              "DocumentMoniker": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_FE\\Pages\\Admin\\Accounts.cshtml",
+              "RelativeDocumentMoniker": "Pages\\Admin\\Accounts.cshtml",
+              "ToolTip": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_FE\\Pages\\Admin\\Accounts.cshtml",
+              "RelativeToolTip": "Pages\\Admin\\Accounts.cshtml",
+              "ViewState": "AgIAADwBAAAAAAAAAAAAAJUBAACWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-09-25T01:26:10.09Z",
+              "EditorCaption": ""
             }
           ]
         },
