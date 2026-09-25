@@ -17,9 +17,34 @@
     if (Model.EndDate.HasValue) routeParams["endDate"] = Model.EndDate.Value.ToString("yyyy-MM-dd");
     if (!string.IsNullOrWhiteSpace(Model.SortBy)) routeParams["sortBy"] = Model.SortBy;
     if (Model.PageSize != 10) routeParams["pageSize"] = Model.PageSize.ToString();
+
+    ViewData["UseFluidContainer"] = true;
 }
 
-<div class="container-fluid px-4 py-3">
+<style>
+    #tableNewsArticles {
+        font-size: 0.95rem;
+    }
+    #tableNewsArticles th {
+        font-size: 0.875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.85rem 0.75rem;
+    }
+    #tableNewsArticles td {
+        padding: 0.95rem 0.75rem;
+    }
+    .modal-dialog-scrollable form.modal-content {
+        max-height: calc(100vh - 3.5rem);
+    }
+    .modal-dialog-scrollable .modal-body {
+        max-height: calc(85vh - 130px);
+        overflow-y: auto;
+    }
+</style>
+
+<div class="py-1">
     <!-- Breadcrumb & Header -->
     <nav aria-label="breadcrumb" class="mb-2">
         <ol class="breadcrumb small">
@@ -67,14 +92,6 @@
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-        </div>
-    </div>
-
-    <!-- Thông báo lộ trình chức năng (AC 6: Không có CTA giả) -->
-    <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between shadow-sm">
-        <div class="small">
-            <i class="bi bi-info-circle-fill me-2 fs-6 text-info"></i>
-            <span><strong>Tính năng hiện tại:</strong> Danh sách, tìm kiếm đa điều kiện, lọc khoảng ngày, phân trang ổn định, <em>Tạo bài viết mới kèm thẻ tin [FUN-012]</em> &amp; <em>Sửa và Xóa bài viết [FUN-013]</em>. Tính năng <em>Nhân bản bài viết [FUN-014]</em> sẽ được triển khai ở task kế tiếp.</span>
         </div>
     </div>
 
@@ -208,12 +225,12 @@
             <table class="table table-hover align-middle mb-0" id="tableNewsArticles">
                 <thead class="table-light">
                     <tr>
-                        <th scope="col" style="width: 110px;" class="text-center">Mã bài</th>
-                        <th scope="col" style="min-width: 250px;">Tiêu đề & Tóm tắt</th>
-                        <th scope="col" style="width: 150px;">Chuyên mục</th>
-                        <th scope="col" style="width: 140px;">Tác giả</th>
-                        <th scope="col" style="width: 130px;">Ngày tạo</th>
-                        <th scope="col" style="width: 120px;" class="text-center">Trạng thái</th>
+                        <th scope="col" style="width: 100px;" class="text-center">Mã bài</th>
+                        <th scope="col" style="min-width: 320px;">Tiêu đề & Tóm tắt</th>
+                        <th scope="col" style="width: 160px;">Chuyên mục</th>
+                        <th scope="col" style="width: 150px;">Tác giả</th>
+                        <th scope="col" style="width: 140px;">Ngày tạo</th>
+                        <th scope="col" style="width: 140px;" class="text-center">Trạng thái</th>
                         <th scope="col" style="width: 180px;">Thẻ tin (Tags)</th>
                         <th scope="col" style="min-width: 290px;" class="text-center">Thao tác</th>
                     </tr>
@@ -234,18 +251,18 @@
                         {
                             <tr id="row-news-@article.NewsArticleId">
                                 <!-- Mã bài viết -->
-                                <td class="text-center fw-semibold text-muted small">
-                                    <span class="badge bg-light text-dark border">@article.NewsArticleId</span>
+                                <td class="text-center fw-semibold text-muted">
+                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-6 font-monospace">@article.NewsArticleId</span>
                                 </td>
 
                                 <!-- Tiêu đề & Tóm tắt -->
                                 <td>
-                                    <div class="fw-semibold text-dark mb-1 lh-sm">
-                                        @article.NewsTitle
+                                    <div class="fw-bold text-dark mb-1 fs-6 lh-base">
+                                        @(string.IsNullOrWhiteSpace(article.NewsTitle) ? article.Headline : article.NewsTitle)
                                     </div>
-                                    @if (!string.IsNullOrWhiteSpace(article.Headline))
+                                    @if (!string.IsNullOrWhiteSpace(article.Headline) && !string.Equals(article.Headline, article.NewsTitle, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <div class="text-secondary small text-truncate" style="max-width: 320px;" title="@article.Headline">
+                                        <div class="text-secondary small text-truncate" style="max-width: 480px;" title="@article.Headline">
                                             @article.Headline
                                         </div>
                                     }
@@ -255,7 +272,7 @@
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(article.CategoryName))
                                     {
-                                        <span class="badge bg-light text-dark border">
+                                        <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-7">
                                             <i class="bi bi-folder text-primary me-1"></i>@article.CategoryName
                                         </span>
                                     }
@@ -267,27 +284,28 @@
 
                                 <!-- Tác giả (AC 2) -->
                                 <td>
-                                    <span class="small fw-semibold text-secondary">
+                                    <span class="fw-medium text-secondary">
                                         <i class="bi bi-person text-secondary me-1"></i>@(string.IsNullOrWhiteSpace(article.AuthorName) ? "Chưa ghi nhận" : article.AuthorName)
                                     </span>
                                 </td>
 
                                 <!-- Ngày tạo -->
-                                <td class="small text-muted">
-                                    @(article.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+                                <td>
+                                    <div class="fw-semibold text-dark small">@(article.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                                    <div class="text-muted" style="font-size: 0.8rem;">@(article.CreatedDate?.ToString("HH:mm") ?? "")</div>
                                 </td>
 
                                 <!-- Trạng thái (Active / Inactive) -->
                                 <td class="text-center">
                                     @if (article.NewsStatus == true)
                                     {
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fs-7">
                                             <i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị
                                         </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fs-7">
                                             <i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn
                                         </span>
                                     }
@@ -300,13 +318,13 @@
                                         <div class="d-flex flex-wrap gap-1">
                                             @foreach (var tag in article.Tags.Take(3))
                                             {
-                                                <span class="badge bg-light text-dark border px-2 py-0 small">
+                                                <span class="badge bg-light text-dark border px-2 py-1 fs-7">
                                                     #@tag.TagName
                                                 </span>
                                             }
                                             @if (article.Tags.Count > 3)
                                             {
-                                                <span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small" title="Còn @(article.Tags.Count - 3) thẻ khác">
+                                                <span class="badge bg-secondary-subtle text-secondary border px-1.5 py-1 fs-7" title="Còn @(article.Tags.Count - 3) thẻ khác">
                                                     +@(article.Tags.Count - 3)
                                                 </span>
                                             }
@@ -321,22 +339,22 @@
                                 <!-- Thao tác (AC: Chi tiết, Nhân bản, Sửa, Xóa) -->
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1 flex-wrap">
-                                        <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
+                                        <button type="button" class="btn btn-outline-info btn-sm px-2.5 py-1 btn-view-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Xem chi tiết bài viết">
                                             <i class="bi bi-eye me-1"></i>Xem
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 btn-duplicate-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Nhân bản bài viết">
                                             <i class="bi bi-files me-1"></i>Nhân bản
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
+                                        <button type="button" class="btn btn-outline-primary btn-sm px-2.5 py-1 btn-edit-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Chỉnh sửa bài viết">
                                             <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
+                                        <button type="button" class="btn btn-outline-danger btn-sm px-2.5 py-1 btn-delete-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 data-news-title="@(article.NewsTitle ?? article.Headline)"
                                                 title="Xóa bài viết">
@@ -491,17 +509,16 @@
 <!-- ======================================================== -->
 <div class="modal fade" id="modalEditNews" tabindex="-1" aria-labelledby="modalEditNewsLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content shadow border-0">
+        <form class="modal-content shadow border-0" id="formEditNews" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="editNewsArticleId" />
             <div class="modal-header bg-warning text-dark py-3">
                 <h5 class="modal-title h6 fw-bold mb-0" id="modalEditNewsLabel">
                     <i class="bi bi-pencil-square me-2"></i>Sửa bài viết tin tức
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btnCloseEditNewsModal"></button>
             </div>
-            <form id="formEditNews" novalidate>
-                @Html.AntiForgeryToken()
-                <input type="hidden" id="editNewsArticleId" />
-                <div class="modal-body p-4">
+            <div class="modal-body p-4">
                     <!-- Alert thông báo lỗi tổng quan -->
                     <div class="alert alert-danger d-none py-2 mb-3" id="editNewsAlert" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
@@ -636,7 +653,6 @@
                     </button>
                 </div>
             </form>
-        </div>
     </div>
 </div>
 
@@ -678,16 +694,15 @@
 <!-- ======================================================== -->
 <div class="modal fade" id="modalCreateNews" tabindex="-1" aria-labelledby="modalCreateNewsLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content shadow border-0">
+        <form class="modal-content shadow border-0" id="formCreateNews" novalidate>
+            @Html.AntiForgeryToken()
             <div class="modal-header bg-primary text-white py-3">
                 <h5 class="modal-title h6 fw-bold mb-0" id="modalCreateNewsLabel">
                     <i class="bi bi-plus-circle me-2"></i>Thêm bài viết tin tức mới
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnCloseCreateNewsModal"></button>
             </div>
-            <form id="formCreateNews" novalidate>
-                @Html.AntiForgeryToken()
-                <div class="modal-body p-4">
+            <div class="modal-body p-4">
                     <!-- Alert thông báo lỗi tổng quan -->
                     <div class="alert alert-danger d-none py-2 mb-3" id="createNewsAlert" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
@@ -814,7 +829,6 @@
                     </button>
                 </div>
             </form>
-        </div>
     </div>
 </div>
 
@@ -1138,58 +1152,62 @@
                             let tagsHtml = '<span class="text-muted small">—</span>';
                             if (a.tags && a.tags.length > 0) {
                                 const tagBadges = a.tags.slice(0, 3).map(t =>
-                                    `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`
+                                    `<span class="badge bg-light text-dark border px-2 py-1 fs-7">#${escapeHtml(t.tagName)}</span>`
                                 ).join(' ');
-                                const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
+                                const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1.5 py-1 fs-7">+${a.tags.length - 3}</span>` : '';
                                 tagsHtml = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
                             }
 
                             // Status badge
                             const statusBadge = a.newsStatus === true
-                                ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
-                                : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+                                ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
 
-                            const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : 'Vừa xong';
+                            const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleDateString('vi-VN') : 'Vừa xong';
+                            const formattedTime = a.createdDate ? new Date(a.createdDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
 
                             newRow.innerHTML = `
-                                <td class="text-center fw-semibold text-muted small">
-                                    <span class="badge bg-light text-dark border">${escapeHtml(a.newsArticleId)}</span>
+                                <td class="text-center fw-semibold text-muted">
+                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-6 font-monospace">${escapeHtml(a.newsArticleId)}</span>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
-                                    <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                    <div class="fw-bold text-dark mb-1 fs-6 lh-base">${escapeHtml(a.newsTitle || a.headline || 'Không có tiêu đề')}</div>
+                                    ${a.headline && a.headline !== a.newsTitle ? `<div class="text-secondary small text-truncate" style="max-width: 480px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>` : ''}
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark border">
+                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-7">
                                         <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="small fw-semibold text-secondary">
+                                    <span class="fw-medium text-secondary">
                                         <i class="bi bi-person text-secondary me-1"></i>${escapeHtml(a.authorName || 'Chưa ghi nhận')}
                                     </span>
                                 </td>
-                                <td class="small text-muted">${formattedDate}</td>
+                                <td>
+                                    <div class="fw-semibold text-dark small">${formattedDate}</div>
+                                    <div class="text-muted" style="font-size: 0.8rem;">${formattedTime}</div>
+                                </td>
                                 <td class="text-center">${statusBadge}</td>
                                 <td>${tagsHtml}</td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1 flex-wrap">
-                                        <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
+                                        <button type="button" class="btn btn-outline-info btn-sm px-2.5 py-1 btn-view-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Xem chi tiết bài viết">
                                             <i class="bi bi-eye me-1"></i>Xem
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 btn-duplicate-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Nhân bản bài viết">
                                             <i class="bi bi-files me-1"></i>Nhân bản
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
+                                        <button type="button" class="btn btn-outline-primary btn-sm px-2.5 py-1 btn-edit-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Chỉnh sửa bài viết">
                                             <i class="bi bi-pencil me-1"></i>Sửa
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
+                                        <button type="button" class="btn btn-outline-danger btn-sm px-2.5 py-1 btn-delete-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 data-news-title="${escapeHtml(a.newsTitle || a.headline)}"
                                                 title="Xóa bài viết">
@@ -1468,58 +1486,62 @@
                                     let tagsHtml = '<span class="text-muted small">—</span>';
                                     if (a.tags && a.tags.length > 0) {
                                         const tagBadges = a.tags.slice(0, 3).map(t =>
-                                            `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`
+                                            `<span class="badge bg-light text-dark border px-2 py-1 fs-7">#${escapeHtml(t.tagName)}</span>`
                                         ).join(' ');
-                                        const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
+                                        const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1.5 py-1 fs-7">+${a.tags.length - 3}</span>` : '';
                                         tagsHtml = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
                                     }
 
                                     // Status badge (bản sao luôn Inactive)
                                     const statusBadge = a.newsStatus === true
-                                        ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
-                                        : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+                                        ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                        : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
 
-                                    const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : 'Vừa xong';
+                                    const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleDateString('vi-VN') : 'Vừa xong';
+                                    const formattedTime = a.createdDate ? new Date(a.createdDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
 
                                     newRow.innerHTML = `
-                                        <td class="text-center fw-semibold text-muted small">
-                                            <span class="badge bg-light text-dark border">${escapeHtml(a.newsArticleId)}</span>
+                                        <td class="text-center fw-semibold text-muted">
+                                            <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-6 font-monospace">${escapeHtml(a.newsArticleId)}</span>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
-                                            <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                            <div class="fw-bold text-dark mb-1 fs-6 lh-base">${escapeHtml(a.newsTitle || a.headline || 'Không có tiêu đề')}</div>
+                                            ${a.headline && a.headline !== a.newsTitle ? `<div class="text-secondary small text-truncate" style="max-width: 480px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>` : ''}
                                         </td>
                                         <td>
-                                            <span class="badge bg-light text-dark border">
+                                            <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-7">
                                                 <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="small fw-semibold text-secondary">
+                                            <span class="fw-medium text-secondary">
                                                 <i class="bi bi-person text-secondary me-1"></i>${escapeHtml(a.authorName || 'Chưa ghi nhận')}
                                             </span>
                                         </td>
-                                        <td class="small text-muted">${formattedDate}</td>
+                                        <td>
+                                            <div class="fw-semibold text-dark small">${formattedDate}</div>
+                                            <div class="text-muted" style="font-size: 0.8rem;">${formattedTime}</div>
+                                        </td>
                                         <td class="text-center">${statusBadge}</td>
                                         <td>${tagsHtml}</td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1 flex-wrap">
-                                                <button type="button" class="btn btn-outline-info btn-sm btn-view-news"
+                                                <button type="button" class="btn btn-outline-info btn-sm px-2.5 py-1 btn-view-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         title="Xem chi tiết bài viết">
                                                     <i class="bi bi-eye me-1"></i>Xem
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                                <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 btn-duplicate-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         title="Nhân bản bài viết">
                                                     <i class="bi bi-files me-1"></i>Nhân bản
                                                 </button>
-                                                <button type="button" class="btn btn-outline-primary btn-sm btn-edit-news"
+                                                <button type="button" class="btn btn-outline-primary btn-sm px-2.5 py-1 btn-edit-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         title="Chỉnh sửa bài viết">
                                                     <i class="bi bi-pencil me-1"></i>Sửa
                                                 </button>
-                                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
+                                                <button type="button" class="btn btn-outline-danger btn-sm px-2.5 py-1 btn-delete-news"
                                                         data-news-id="${escapeHtml(a.newsArticleId)}"
                                                         data-news-title="${escapeHtml(a.newsTitle || a.headline)}"
                                                         title="Xóa bài viết">
@@ -1639,8 +1661,8 @@
                             const titleCol = row.querySelector('td:nth-child(2)');
                             if (titleCol) {
                                 titleCol.innerHTML = `
-                                    <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
-                                    <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                    <div class="fw-bold text-dark mb-1 fs-6 lh-base">${escapeHtml(a.newsTitle || a.headline || 'Không có tiêu đề')}</div>
+                                    ${a.headline && a.headline !== a.newsTitle ? `<div class="text-secondary small text-truncate" style="max-width: 480px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>` : ''}
                                 `;
                             }
 
@@ -1648,7 +1670,7 @@
                             const catCol = row.querySelector('td:nth-child(3)');
                             if (catCol) {
                                 catCol.innerHTML = `
-                                    <span class="badge bg-light text-dark border">
+                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 fs-7">
                                         <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
                                     </span>
                                 `;
@@ -1658,16 +1680,16 @@
                             const statusCol = row.querySelector('td:nth-child(6)');
                             if (statusCol) {
                                 statusCol.innerHTML = a.newsStatus === true
-                                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
-                                    : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+                                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                    : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fs-7"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
                             }
 
                             // Cập nhật tags
                             const tagsCol = row.querySelector('td:nth-child(7)');
                             if (tagsCol) {
                                 if (a.tags && a.tags.length > 0) {
-                                    const tagBadges = a.tags.slice(0, 3).map(t => `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`).join(' ');
-                                    const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
+                                    const tagBadges = a.tags.slice(0, 3).map(t => `<span class="badge bg-light text-dark border px-2 py-1 fs-7">#${escapeHtml(t.tagName)}</span>`).join(' ');
+                                    const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1.5 py-1 fs-7">+${a.tags.length - 3}</span>` : '';
                                     tagsCol.innerHTML = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
                                 } else {
                                     tagsCol.innerHTML = '<span class="text-muted small">—</span>';

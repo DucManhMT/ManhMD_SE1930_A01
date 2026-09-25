@@ -1,7 +1,16 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_BE\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{87BF87E0-6342-46AF-8585-9A85D4F0E682}|ManhMD_SE1930_A01_BE.csproj|e:\\ide\\my_project\\prn232\\ass01\\manhmd_se1930_a01\\manhmd_se1930_a01_be\\odata\\odatamodelbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{87BF87E0-6342-46AF-8585-9A85D4F0E682}|ManhMD_SE1930_A01_BE.csproj|solutionrelative:odata\\odatamodelbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{87BF87E0-6342-46AF-8585-9A85D4F0E682}|ManhMD_SE1930_A01_BE.csproj|e:\\ide\\my_project\\prn232\\ass01\\manhmd_se1930_a01\\manhmd_se1930_a01_be\\odata\\odataqueryhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{87BF87E0-6342-46AF-8585-9A85D4F0E682}|ManhMD_SE1930_A01_BE.csproj|solutionrelative:odata\\odataqueryhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 15,
           "Children": [
             {
               "$type": "Bookmark",
@@ -66,6 +75,32 @@
             {
               "$type": "Bookmark",
               "Name": "ST:7:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ODataQueryHelper.cs",
+              "DocumentMoniker": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_BE\\OData\\ODataQueryHelper.cs",
+              "RelativeDocumentMoniker": "OData\\ODataQueryHelper.cs",
+              "ToolTip": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_BE\\OData\\ODataQueryHelper.cs",
+              "RelativeToolTip": "OData\\ODataQueryHelper.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-25T02:07:29.233Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ODataModelBuilder.cs",
+              "DocumentMoniker": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_BE\\OData\\ODataModelBuilder.cs",
+              "RelativeDocumentMoniker": "OData\\ODataModelBuilder.cs",
+              "ToolTip": "E:\\IDE\\My_Project\\PRN232\\ASS01\\ManhMD_SE1930_A01\\ManhMD_SE1930_A01_BE\\OData\\ODataModelBuilder.cs",
+              "RelativeToolTip": "OData\\ODataModelBuilder.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-25T02:07:24.273Z",
+              "EditorCaption": ""
             }
           ]
         },

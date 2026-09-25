@@ -118,7 +118,10 @@
         </nav>
     </header>
 
-    <div class="container fu-container-public flex-grow-1 my-4">
+    @{
+        var isFluid = ViewData["UseFluidContainer"] as bool? == true;
+    }
+    <div class="@(isFluid ? "container-fluid px-3 px-lg-4" : "container fu-container-public") flex-grow-1 my-3">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
