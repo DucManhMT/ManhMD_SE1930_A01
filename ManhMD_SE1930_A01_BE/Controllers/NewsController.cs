@@ -53,6 +53,28 @@ public class NewsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}/related")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<NewsArticleDto>>> GetRelated(string id, CancellationToken cancellationToken)
+    {
+        var isPrivileged = User.Identity?.IsAuthenticated == true && (User.IsInRole("Staff") || User.IsInRole("Admin"));
+        var filterActive = !isPrivileged;
+
+        var target = await _newsService.GetByIdAsync(id, filterActive, cancellationToken);
+        if (target == null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Không tìm thấy bài viết",
+                Detail = $"Bài viết với mã {id} không tồn tại hoặc bạn không có quyền xem."
+            });
+        }
+
+        var related = await _newsService.GetRelatedArticlesAsync(id, cancellationToken);
+        return Ok(related);
+    }
+
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<ActionResult<NewsArticleDto>> GetById(string id, CancellationToken cancellationToken)

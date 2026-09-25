@@ -192,6 +192,18 @@ public class FUNewsApiClient : IFUNewsApiClient
         return GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
     }
 
+    public async Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"api/news/{Uri.EscapeDataString(id)}/related", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
+        return result ?? new List<NewsArticleApiModel>();
+    }
+
     public Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/account" : $"api/account{FormatQuery(odataQuery)}";

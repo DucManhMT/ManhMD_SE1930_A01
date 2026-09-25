@@ -44,21 +44,15 @@ public class DetailModel : PageModel
 
             Article = article;
 
-            // Tải bài viết liên quan cùng chuyên mục (tối đa 3 bài, loại trừ bài hiện tại)
-            if (article.CategoryId.HasValue && article.CategoryId.Value > 0)
+            // FUN-018: Tải bài viết liên quan (cùng category hoặc có ít nhất 1 tag chung, tối đa 3 bài, distinct, loại trừ chính bài, chỉ Active)
+            try
             {
-                try
-                {
-                    var safeId = ODataFilterHelper.EscapeStringLiteral(article.NewsArticleId);
-                    var relatedQuery = $"$filter=categoryId eq {article.CategoryId.Value} and newsArticleId ne '{safeId}' and newsStatus eq true&$top=3&$orderby=createdDate desc";
-                    var relatedEnv = await _newsClientService.GetNewsArticlesAsync(relatedQuery, cancellationToken);
-                    RelatedArticles = relatedEnv?.Value ?? new List<NewsArticleApiModel>();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Could not load related articles for article {Id}.", id);
-                    RelatedArticles = new List<NewsArticleApiModel>();
-                }
+                RelatedArticles = await _newsClientService.GetRelatedNewsArticlesAsync(article.NewsArticleId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not load related articles for article {Id}.", id);
+                RelatedArticles = new List<NewsArticleApiModel>();
             }
 
             return Page();

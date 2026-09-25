@@ -46,6 +46,9 @@ public class SearchRazorPageTests
 
         public Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default) =>
             Task.FromResult(new NewsArticleApiModel());
+
+        public Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<NewsArticleApiModel>());
     }
 
     private class FakeCategoryClientService : ICategoryClientService

@@ -272,5 +272,68 @@ public class NewsArticleService : INewsArticleService
             .ThenByDescending(a => a.NewsArticleID)
             .Select(NewsArticleMappingHelper.ProjectToDto);
     }
+
+    public async Task<List<NewsArticleDto>> GetRelatedArticlesAsync(string id, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return new List<NewsArticleDto>();
+        }
+
+        // Lấy thông tin bài viết gốc để biết CategoryID và danh sách TagID
+        var currentArticle = await _articleRepository.GetQueryable().AsNoTracking()
+            .Where(a => a.NewsArticleID == id)
+            .Select(a => new
+            {
+                a.NewsArticleID,
+                a.CategoryID,
+                a.NewsStatus,
+                TagIds = a.NewsTags.Select(nt => nt.TagID).ToList()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // FUN-018: Nếu bài gốc không tồn tại hoặc không Active (đối với public) -> không trả về bài liên quan
+        if (currentArticle == null || currentArticle.NewsStatus != true)
+        {
+            return new List<NewsArticleDto>();
+        }
+
+        var categoryId = currentArticle.CategoryID;
+        var tagIds = currentArticle.TagIds;
+
+        // AC 1, AC 2, AC 3, AC 4:
+        // 1. Loại current: a.NewsArticleID != id
+        // 2. Chỉ Active: a.NewsStatus == true
+        // 3. Áp predicate chung đúng ngoặc OR: cùng CategoryID hoặc có ít nhất 1 Tag chung
+        // 4. Sort mới nhất rồi ID: OrderByDescending(CreatedDate).ThenByDescending(NewsArticleID)
+        // 5. Tối đa 3, distinct: Take(3)
+        // 6. Ít/không kết quả không dùng dữ liệu giả.
+        var query = _articleRepository.GetQueryable().AsNoTracking()
+            .Where(a => a.NewsStatus == true && a.NewsArticleID != id);
+
+        if (categoryId.HasValue && tagIds.Count > 0)
+        {
+            query = query.Where(a => a.CategoryID == categoryId.Value || a.NewsTags.Any(nt => tagIds.Contains(nt.TagID)));
+        }
+        else if (categoryId.HasValue)
+        {
+            query = query.Where(a => a.CategoryID == categoryId.Value);
+        }
+        else if (tagIds.Count > 0)
+        {
+            query = query.Where(a => a.NewsTags.Any(nt => tagIds.Contains(nt.TagID)));
+        }
+        else
+        {
+            return new List<NewsArticleDto>();
+        }
+
+        return await query
+            .OrderByDescending(a => a.CreatedDate)
+            .ThenByDescending(a => a.NewsArticleID)
+            .Take(3)
+            .Select(NewsArticleMappingHelper.ProjectToDto)
+            .ToListAsync(cancellationToken);
+    }
 }
 

@@ -80,6 +80,11 @@ public class HistoryRazorPageTests
                 Value = Articles
             });
         }
+
+        public Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new List<NewsArticleApiModel>());
+        }
     }
 
     private class FakeHistoryCategoryService : ICategoryClientService

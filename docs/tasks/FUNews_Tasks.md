@@ -27,7 +27,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-015 | Lịch sử bài do mình tạo | 013 | DONE |
 | FUN-016 | Trang tin công khai và chi tiết | 013 | DONE |
 | FUN-017 | Tìm kiếm nâng cao | 016 | DONE |
-| FUN-018 | Tin liên quan | 016 | TODO |
+| FUN-018 | Tin liên quan | 016 | DONE |
 | FUN-019 | Báo cáo và audit cuối | 013 | TODO |
 | FUN-020 | Kiểm thử tích hợp và UI | 006,007,009,014,015,017,018,019 | TODO |
 | FUN-021 | README và bộ nộp | 020 | TODO |
@@ -756,7 +756,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-018 — Tin liên quan
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 016
 - Actor: Anonymous/Lecturer
 - Điểm vào/phạm vi file: Chi tiết; GET /api/news/{id}/related
@@ -764,17 +764,36 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Acceptance criteria
 
-1. Tối đa 3, distinct, loại current, chỉ Active.
-2. Áp predicate chung đúng ngoặc OR.
-3. Sort mới nhất rồi ID.
-4. Ít/không kết quả không dùng dữ liệu giả.
+1. Tối đa 3, distinct, loại current, chỉ Active: Endpoint và UI trả về tối đa 3 bài viết liên quan, loại bỏ chính bài viết hiện tại (`NewsArticleID != id`), mỗi bài duy nhất (distinct) và tất cả bài liên quan bắt buộc phải có `NewsStatus == true` (Active). Nếu bài hiện tại Inactive, request từ public trả về 404 Not Found.
+2. Áp predicate chung đúng ngoặc OR: Một bài viết được coi là liên quan khi có cùng `CategoryID` HOẶC có chung ít nhất 1 `TagID` với bài hiện tại; câu truy vấn SQL/LINQ đóng mở ngoặc logic đúng quy tắc: `a.NewsStatus == true && a.NewsArticleID != id && ((currentCat != null && a.CategoryID == currentCat) || (currentTags.Count > 0 && a.NewsTags.Any(nt => currentTags.Contains(nt.TagID))))`.
+3. Sort mới nhất rồi ID: Sắp xếp theo ngày tạo giảm dần rồi đến mã bài viết giảm dần (`OrderByDescending(CreatedDate).ThenByDescending(NewsArticleID)`).
+4. Ít/không kết quả không dùng dữ liệu giả: Khi chỉ có 1 hoặc 2 bài liên quan thì trả về đúng số lượng bài thật tìm được; khi không có bài liên quan thì trả về mảng rỗng `[]` và không sinh dữ liệu giả (fake/mock data).
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/INewsArticleService.cs`: Khai báo `GetRelatedArticlesAsync(string id, CancellationToken cancellationToken)`.
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs`: Triển khai `GetRelatedArticlesAsync` với predicate OR (cùng category hoặc chung tag), loại current, chỉ Active, sort mới nhất rồi ID, `Take(3)`.
+    - `ManhMD_SE1930_A01_BE/Controllers/NewsController.cs`: Thêm endpoint `GET /api/news/{id}/related` bảo vệ public (AllowAnonymous), trả về 404 nếu bài gốc không tồn tại hoặc Inactive đối với public.
+  - Frontend:
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs` & `FUNewsApiClient.cs`: Khai báo và triển khai `GetRelatedNewsArticlesAsync(string id)`.
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/INewsClientService.cs` & `NewsClientService.cs`: Khai báo và triển khai `GetRelatedNewsArticlesAsync`.
+    - `ManhMD_SE1930_A01_FE/Pages/News/Detail.cshtml.cs`: Gọi `GetRelatedNewsArticlesAsync` để tải danh sách bài liên quan theo API chuẩn.
+    - `ManhMD_SE1930_A01_FE/Pages/News/Detail.cshtml`: Cập nhật tiêu đề "Bài viết liên quan", hiển thị badge chuyên mục, ngày đăng, tiêu đề, tóm tắt và nút "Đọc bài" dạng cards responsive Bootstrap 5; không render dữ liệu giả khi không có kết quả.
+  - Tests:
+    - `tests/FUNews.Tests/NewsArticleRelatedTests.cs`: 5 integration tests kiểm thử tối đa 3 bài, distinct, loại current, loại Inactive, sort mới nhất, predicate OR đúng ngoặc, chặn 404 cho bài Inactive, và không sinh dữ liệu giả khi ít/không có kết quả.
+    - `tests/FUNews.Client.Tests/NewsPublicPageTests.cs`: 2 unit tests kiểm thử `DetailModel` tải bài viết liên quan qua service và xử lý mảng rỗng khi không có bài liên quan.
+    - Cập nhật các fake service trong `NewsRazorPageTests.cs`, `HistoryRazorPageTests.cs`, `SearchRazorPageTests.cs`.
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 117 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 96 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - API `GET /api/news/{id}/related`: Trả về danh sách JSON tối đa 3 bài viết Active có chung chuyên mục hoặc ít nhất 1 thẻ tin, sắp xếp giảm dần theo ngày tạo và mã bài; trả về 404 nếu bài gốc Inactive.
+  - UI: Chi tiết bài viết `/news/{id}` hiển thị khu vực "Bài viết liên quan" với thẻ bài viết đẹp mắt, ngày đăng và badge chuyên mục rõ ràng; không hiển thị fake data.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-019 — Báo cáo và audit cuối
 

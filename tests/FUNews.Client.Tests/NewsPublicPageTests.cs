@@ -76,6 +76,28 @@ public class NewsPublicPageTests
         public Task DeleteNewsArticleAsync(string id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+        public Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default)
+        {
+            var target = Articles.FirstOrDefault(a => a.NewsArticleId == id);
+            if (target == null || target.NewsStatus != true)
+            {
+                return Task.FromResult(new List<NewsArticleApiModel>());
+            }
+
+            var targetTagIds = target.Tags?.Select(t => t.TagId).ToList() ?? new List<int>();
+
+            var related = Articles
+                .Where(a => a.NewsStatus == true && a.NewsArticleId != id &&
+                    ((target.CategoryId.HasValue && a.CategoryId == target.CategoryId.Value) ||
+                     (targetTagIds.Count > 0 && a.Tags != null && a.Tags.Any(t => targetTagIds.Contains(t.TagId)))))
+                .OrderByDescending(a => a.CreatedDate)
+                .ThenByDescending(a => a.NewsArticleId)
+                .Take(3)
+                .ToList();
+
+            return Task.FromResult(related);
+        }
     }
 
     private class FakePublicCategoryService : ICategoryClientService
@@ -168,5 +190,46 @@ public class NewsPublicPageTests
         var result = await pageModel.OnGetAsync("NON_EXISTING_ID", CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Detail_OnGetAsync_LoadsRelatedArticles_ViaService()
+    {
+        // FUN-018: Nạp bài viết liên quan
+        var fakeNews = new FakePublicNewsService();
+        // Add another active article in category 1
+        fakeNews.Articles.Add(new NewsArticleApiModel
+        {
+            NewsArticleId = "PUB_03",
+            NewsTitle = "Tin liên quan mới",
+            CategoryId = 1,
+            NewsStatus = true,
+            CreatedDate = DateTime.Now
+        });
+
+        var pageModel = CreateDetailModel(fakeNews);
+        var result = await pageModel.OnGetAsync("PUB_01", CancellationToken.None);
+
+        Assert.IsType<PageResult>(result);
+        Assert.NotNull(pageModel.RelatedArticles);
+        Assert.Single(pageModel.RelatedArticles);
+        Assert.Equal("PUB_03", pageModel.RelatedArticles[0].NewsArticleId);
+    }
+
+    [Fact]
+    public async Task Detail_OnGetAsync_WhenNoRelatedArticles_LeavesEmptyList_NoFakeData()
+    {
+        // AC 4: Không có bài liên quan không sinh dữ liệu giả
+        var fakeNews = new FakePublicNewsService();
+        // Change category of PUB_01 to unique category 99
+        fakeNews.Articles.First(a => a.NewsArticleId == "PUB_01").CategoryId = 99;
+        fakeNews.Articles.First(a => a.NewsArticleId == "PUB_01").Tags = new List<TagApiModel>();
+
+        var pageModel = CreateDetailModel(fakeNews);
+        var result = await pageModel.OnGetAsync("PUB_01", CancellationToken.None);
+
+        Assert.IsType<PageResult>(result);
+        Assert.NotNull(pageModel.RelatedArticles);
+        Assert.Empty(pageModel.RelatedArticles);
     }
 }

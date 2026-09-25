@@ -12,4 +12,5 @@ public interface INewsArticleService
     Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
     Task<NewsArticleDto> DuplicateAsync(string sourceId, short currentStaffId, CancellationToken cancellationToken = default);
     IQueryable<NewsArticleDto> GetMyArticlesQueryable(short authorId);
+    Task<List<NewsArticleDto>> GetRelatedArticlesAsync(string id, CancellationToken cancellationToken = default);
 }

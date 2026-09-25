@@ -46,5 +46,10 @@ public class NewsClientService : INewsClientService
     {
         return _apiClient.GetMyNewsArticlesAsync(odataQuery, cancellationToken);
     }
+
+    public Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetRelatedNewsArticlesAsync(id, cancellationToken);
+    }
 }
 
