@@ -119,19 +119,33 @@ public static class ODataFilterHelper
         DateTime? endDate = null,
         string? sortBy = null,
         int top = 10,
-        int skip = 0)
+        int skip = 0,
+        int? tagId = null,
+        bool includeContent = false)
     {
         var filters = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var safeTerm = EscapeStringLiteral(searchTerm);
-            filters.Add($"(contains(newsTitle,'{safeTerm}') or contains(headline,'{safeTerm}'))");
+            if (includeContent)
+            {
+                filters.Add($"(contains(newsTitle,'{safeTerm}') or contains(headline,'{safeTerm}') or (newsContent ne null and contains(newsContent,'{safeTerm}')))");
+            }
+            else
+            {
+                filters.Add($"(contains(newsTitle,'{safeTerm}') or contains(headline,'{safeTerm}'))");
+            }
         }
 
         if (categoryId.HasValue && categoryId.Value > 0)
         {
             filters.Add($"categoryId eq {categoryId.Value}");
+        }
+
+        if (tagId.HasValue && tagId.Value > 0)
+        {
+            filters.Add($"tags/any(t: t/tagId eq {tagId.Value})");
         }
 
         if (!string.IsNullOrWhiteSpace(statusFilter))

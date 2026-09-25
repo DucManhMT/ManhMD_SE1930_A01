@@ -26,7 +26,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-014 | Nhân bản bài viết | 013 | DONE |
 | FUN-015 | Lịch sử bài do mình tạo | 013 | DONE |
 | FUN-016 | Trang tin công khai và chi tiết | 013 | DONE |
-| FUN-017 | Tìm kiếm nâng cao | 016 | TODO |
+| FUN-017 | Tìm kiếm nâng cao | 016 | DONE |
 | FUN-018 | Tin liên quan | 016 | TODO |
 | FUN-019 | Báo cáo và audit cuối | 013 | TODO |
 | FUN-020 | Kiểm thử tích hợp và UI | 006,007,009,014,015,017,018,019 | TODO |
@@ -715,7 +715,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-017 — Tìm kiếm nâng cao
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 016
 - Actor: Anonymous/Lecturer; Staff qua quản lý
 - Điểm vào/phạm vi file: /search; GET /api/news
@@ -723,19 +723,36 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ### Acceptance criteria
 
-1. Điều kiện kết hợp đúng.
-2. Encode dấu nháy/Unicode.
-3. Preserve query khi phân trang.
-4. Public luôn Active.
-5. MaxTop và allowlist có test.
-6. FE không tải toàn bộ rồi lọc.
+1. Điều kiện kết hợp đúng: Kết hợp linh hoạt từ khóa (`newsTitle`, `headline`, `newsContent`), `categoryId`, `tagId`, `authorTerm`, khoảng ngày (`startDate` - `endDate`), `statusFilter` (Staff: All/Active/Inactive; Anonymous/Lecturer luôn bị chặn chỉ xem Active).
+2. Encode dấu nháy/Unicode: Ký tự Unicode tiếng Việt có dấu và dấu nháy đơn `'` được escape an toàn thành `''` trong OData string literal không làm vỡ cú pháp.
+3. Preserve query khi phân trang: Bảo toàn toàn bộ query parameters trên các link phân trang khi người dùng chuyển trang.
+4. Public luôn Active: Anonymous và Lecturer khi tìm kiếm luôn chỉ nhận các bài viết `NewsStatus == true`; không lộ bài Inactive hoặc count của Inactive.
+5. MaxTop và allowlist có test: Backend API kiểm tra `maxTop = 100`, chỉ allowlist query options hợp lệ, có test tự động kiểm tra chặn lỗi 400 Bad Request.
+6. FE không tải toàn bộ rồi lọc: Frontend không tải toàn bộ bài viết về RAM để lọc LINQ; OData query truyền `$filter`, `$top`, `$skip`, `$count` trực tiếp xuống backend để database lọc và phân trang.
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - `ManhMD_SE1930_A01_BE/OData/ODataQueryHelper.cs`: Bật `AllowedFunctions.Any` để hỗ trợ lọc collection thẻ tin `tags/any(t: t/tagId eq ...)`.
+    - `ManhMD_SE1930_A01_BE/Controllers/NewsController.cs`: Củng cố endpoint `GET /api/news` áp dụng OData query và lọc phân quyền theo role.
+  - Frontend:
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Helpers/ODataFilterHelper.cs`: Nâng cấp hàm `BuildNewsQuery` hỗ trợ thêm tham số `tagId` (`tags/any(...)`), cờ `includeContent: true` để tìm kiếm trên cả `newsContent`, và escape dấu nháy đơn an toàn.
+    - `ManhMD_SE1930_A01_FE/Pages/Search.cshtml.cs`: Triển khai `SearchModel` xử lý tìm kiếm nâng cao qua OData, nạp dropdown categories/tags, validate khoảng ngày bắt đầu > ngày kết thúc, phân quyền status theo role (Anonymous/Lecturer luôn ép Active), phân trang phía server.
+    - `ManhMD_SE1930_A01_FE/Pages/Search.cshtml`: Màn hình giao diện Tìm kiếm nâng cao `/search` chuẩn Bootstrap 5 & token Design Standard (tối đa 1200px), gồm bộ lọc điều kiện, kết quả tìm kiếm card responsive, empty state thân thiện, và thanh phân trang bảo toàn toàn bộ query parameters.
+    - `ManhMD_SE1930_A01_FE/Pages/Shared/_Layout.cshtml`: Bổ sung liên kết "Tìm kiếm" trên thanh điều hướng cho Staff (cùng với Anonymous/Lecturer).
+  - Tests:
+    - `tests/FUNews.Tests/NewsArticleSearchTests.cs`: 5 integration tests kiểm thử kết hợp điều kiện tìm kiếm, lọc theo Tag qua `tags/any`, escape dấu nháy đơn `'` và Unicode tiếng Việt, chặn bài Inactive cho public user, và chặn query vượt `MaxTop = 100` (400 Bad Request).
+    - `tests/FUNews.Client.Tests/SearchRazorPageTests.cs`: 5 unit tests kiểm thử tạo OData query với content/tag/escape, cưỡng chế Active cho Anonymous, cho phép lọc status cho Staff, validate khoảng ngày lỗi, và tính toán phân trang.
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 112 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 94 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - API: `GET /api/news?$filter=...` thực thi OData lọc kết hợp, hỗ trợ `tags/any(t: t/tagId eq ...)`, escape dấu nháy đơn không lỗi cú pháp.
+  - UI: Giao diện `/search` hỗ trợ form lọc nhiều điều kiện, reset bộ lọc, hiển thị danh sách bài viết với tags và badge, phân trang giữ nguyên toàn bộ URL parameters.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-018 — Tin liên quan
 

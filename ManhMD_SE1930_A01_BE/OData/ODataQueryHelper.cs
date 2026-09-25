@@ -16,7 +16,7 @@ public static class ODataQueryHelper
         {
             MaxTop = maxTop,
             AllowedQueryOptions = AllowedQueryOptions.Filter | AllowedQueryOptions.OrderBy | AllowedQueryOptions.Top | AllowedQueryOptions.Skip | AllowedQueryOptions.Count,
-            AllowedFunctions = AllowedFunctions.AllFunctions & ~AllowedFunctions.All & ~AllowedFunctions.Any
+            AllowedFunctions = AllowedFunctions.AllFunctions & ~AllowedFunctions.All
         };
 
         queryOptions.Validate(validationSettings);
