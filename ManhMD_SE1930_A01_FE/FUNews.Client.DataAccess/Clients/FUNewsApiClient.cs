@@ -174,6 +174,18 @@ public class FUNewsApiClient : IFUNewsApiClient
         }
     }
 
+    public async Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsync($"api/news/{Uri.EscapeDataString(id)}/duplicate", null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var duplicated = await response.Content.ReadFromJsonAsync<NewsArticleApiModel>(JsonOptions, cancellationToken);
+        return duplicated ?? throw new InvalidOperationException("Máy chủ không trả về dữ liệu bài viết vừa nhân bản.");
+    }
+
     public Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/account" : $"api/account{FormatQuery(odataQuery)}";

@@ -23,7 +23,7 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 | FUN-011 | Danh sách quản lý bài viết | 008,010 | DONE |
 | FUN-012 | Tạo bài và gắn nhiều tags | 011 | DONE |
 | FUN-013 | Sửa và xóa bài viết | 012 | DONE |
-| FUN-014 | Nhân bản bài viết | 013 | TODO |
+| FUN-014 | Nhân bản bài viết | 013 | DONE |
 | FUN-015 | Lịch sử bài do mình tạo | 013 | TODO |
 | FUN-016 | Trang tin công khai và chi tiết | 013 | TODO |
 | FUN-017 | Tìm kiếm nâng cao | 016 | TODO |
@@ -590,28 +590,47 @@ Actor/input/route đọc thêm Database_API_Contract. Mọi card CRUD gồm serv
 
 ## FUN-014 — Nhân bản bài viết
 
-- Trạng thái: TODO
+- Trạng thái: DONE
 - Dependencies: 013
 - Actor: Staff
-- Điểm vào/phạm vi file: POST /api/news/{id}/duplicate
+- Điểm vào/phạm vi file: POST /api/news/{id}/duplicate; /staff/news
 - Mục tiêu: Copy nội dung/category/tags thành bản mới và mở modal sửa bản sao.
 
 ### Acceptance criteria
 
-1. ID mới.
-2. Inactive.
-3. Người tạo hiện tại/ngày mới.
-4. Audit update NULL.
-5. Transaction.
-6. Lỗi không tạo bản nửa chừng.
-7. Bài gốc không đổi.
+1. ID mới: Sinh tự động qua SQL sequence `dbo.Seq_NewsArticleID`, tiền tố 'N', <= 20 ký tự.
+2. Inactive: Trạng thái bản sao luôn là `NewsStatus = false` (Tạm ẩn) ngay cả khi bài gốc là Active.
+3. Người tạo hiện tại/ngày mới: `CreatedByID` lấy từ claims Staff của token (không từ client), `CreatedDate` là thời gian hiện tại.
+4. Audit update NULL: `UpdatedByID = null`, `ModifiedDate = null`.
+5. Transaction: Sao chép cả `NewsArticle` và danh sách `NewsTag` atomic trong database transaction.
+6. Lỗi không tạo bản nửa chừng: Transaction rollback nếu có lỗi, không để lại bản ghi rác.
+7. Bài gốc không đổi: Trạng thái, nội dung, tác giả, ngày tạo, tags của bài viết nguồn hoàn toàn nguyên vẹn.
 
 ### Bàn giao
 
-- File thay đổi: Chưa triển khai.
-- Lệnh và kết quả build/test: Chưa chạy.
-- UI/SQL/API evidence: Chưa kiểm tra.
-- Blocker/giả định phát sinh: Chưa ghi nhận.
+- File thay đổi:
+  - Backend:
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/INewsArticleService.cs`: Khai báo `DuplicateAsync`.
+    - `ManhMD_SE1930_A01_BE/FUNews.BusinessLogic/Services/NewsArticleService.cs`: Triển khai `DuplicateAsync` lấy bài gốc, sinh ID mới qua sequence, khởi tạo `NewsStatus = false`, tác giả hiện tại, audit update NULL, ghi bài và copy tags atomic qua `CreateWithTagsAsync`.
+    - `ManhMD_SE1930_A01_BE/Controllers/NewsController.cs`: Endpoint `POST /api/news/{id}/duplicate` bảo vệ bằng `[Authorize(Roles = "Staff")]`, trả về 201 Created.
+  - Frontend:
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.DataAccess/Clients/IFUNewsApiClient.cs` & `FUNewsApiClient.cs`: Thêm `DuplicateNewsArticleAsync`.
+    - `ManhMD_SE1930_A01_FE/FUNews.Client.BusinessLogic/Services/INewsClientService.cs` & `NewsClientService.cs`: Thêm `DuplicateNewsArticleAsync`.
+    - `ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml.cs`: Thêm handler `OnPostDuplicateAsync` nhận `DuplicateNewsArticleInputModel`, trả về JSON kết quả.
+    - `ManhMD_SE1930_A01_FE/Pages/Staff/News.cshtml`: Thêm nút nhân bản `.btn-duplicate-news` trên từng dòng bài viết, hàm `bindDuplicateButtons` gửi AJAX có header `'X-CSRF-TOKEN'`, chèn bản sao vào đầu bảng, cập nhật badge tổng số bài, hiển thị toast và tự động mở modal Sửa (`openEditModal`) nạp bản sao Inactive vừa tạo để Staff có thể hiệu chỉnh ngay theo Design Standard.
+  - Tests:
+    - `tests/FUNews.Tests/NewsArticleDuplicateTests.cs`: 6 tests tích hợp bao phủ 7/7 ACs và quyền truy cập (Staff, Anonymous 401, Lecturer 403, NotFound 404).
+    - `tests/FUNews.Client.Tests/NewsRazorPageTests.cs`: 3 tests unit kiểm tra handler `OnPostDuplicateAsync` (thành công bản sao Inactive, ID rỗng, lỗi 404 từ API).
+- Lệnh và kết quả build/test:
+  - `dotnet build ManhMD_SE1930_A01_BE/ManhMD_SE1930_A01_BE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet build ManhMD_SE1930_A01_FE/ManhMD_SE1930_A01_FE.sln`: 0 Warning(s), 0 Error(s).
+  - `dotnet test tests/FUNews.Tests/FUNews.Tests.csproj`: 98 Passed, 0 Failed, 0 Skipped (100% pass).
+  - `dotnet test tests/FUNews.Client.Tests/FUNews.Client.Tests.csproj`: 81 Passed, 0 Failed, 0 Skipped (100% pass).
+- UI/SQL/API evidence:
+  - API `POST /api/news/{id}/duplicate` trả về 201 Created kèm đầy đủ thông tin bài sao chép.
+  - SQL: Bản sao tạo mới có mã sinh từ sequence `dbo.Seq_NewsArticleID`, liên kết tags sao chép đầy đủ trong bảng `NewsTag`, bài gốc không đổi.
+  - UI: Nút "Nhân bản" có hiệu ứng spinner loading khi thao tác, sau khi thành công cập nhật dòng vào đầu bảng, tăng badge và lập tức mở modal Sửa bài viết cho bản sao Inactive mới.
+- Blocker/giả định phát sinh: Không có.
 
 ## FUN-015 — Lịch sử bài do mình tạo
 

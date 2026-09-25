@@ -335,6 +335,46 @@ public class NewsModel : PageModel
             });
         }
     }
+
+    public async Task<IActionResult> OnPostDuplicateAsync([FromBody] DuplicateNewsArticleInputModel input, CancellationToken cancellationToken)
+    {
+        if (input == null || string.IsNullOrWhiteSpace(input.NewsArticleId))
+        {
+            return new JsonResult(new { success = false, message = "Mã bài viết không hợp lệ." });
+        }
+
+        try
+        {
+            var duplicated = await _newsClientService.DuplicateNewsArticleAsync(input.NewsArticleId, cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Nhân bản bài viết thành công. Bản sao mới có mã '{duplicated.NewsArticleId}' (Tạm ẩn).",
+                article = duplicated
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while duplicating news article {Id}: {Message}", input.NewsArticleId, ex.Message);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể nhân bản bài viết. Vui lòng thử lại."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while duplicating news article {Id}.", input.NewsArticleId);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi không mong muốn trên hệ thống. Vui lòng thử lại sau."
+            });
+        }
+    }
 }
 
 public class CreateNewsArticleInputModel
@@ -389,6 +429,12 @@ public class UpdateNewsArticleInputModel
 }
 
 public class DeleteNewsArticleInputModel
+{
+    [Required(ErrorMessage = "Mã bài viết là bắt buộc.")]
+    public string NewsArticleId { get; set; } = string.Empty;
+}
+
+public class DuplicateNewsArticleInputModel
 {
     [Required(ErrorMessage = "Mã bài viết là bắt buộc.")]
     public string NewsArticleId { get; set; } = string.Empty;

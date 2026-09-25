@@ -9,5 +9,6 @@ public interface INewsClientService
     Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default);
     Task<NewsArticleApiModel> UpdateNewsArticleAsync(string id, UpdateNewsArticleApiModel request, CancellationToken cancellationToken = default);
     Task DeleteNewsArticleAsync(string id, CancellationToken cancellationToken = default);
+    Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default);
 }
 

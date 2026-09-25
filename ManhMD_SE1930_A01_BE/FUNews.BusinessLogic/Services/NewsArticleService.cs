@@ -215,5 +215,52 @@ public class NewsArticleService : INewsArticleService
         // AC 6: Chỉ xóa NewsTags của bài này, bài khác cùng tag không bị ảnh hưởng
         return await _articleRepository.DeleteAsync(id, cancellationToken);
     }
+
+    public async Task<NewsArticleDto> DuplicateAsync(string sourceId, short currentStaffId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId))
+        {
+            throw new ValidationException("id", "Mã bài viết nguồn không hợp lệ.");
+        }
+
+        // 1. Kiểm tra bài viết nguồn tồn tại kèm danh sách tags (AC 7: bài gốc không đổi)
+        var source = await _articleRepository.GetByIdWithDetailsAsync(sourceId, cancellationToken);
+        if (source == null)
+        {
+            throw new NotFoundException($"Không tìm thấy bài viết nguồn với mã '{sourceId}'.");
+        }
+
+        // 2. Sinh ID mới duy nhất qua SQL sequence (AC 1)
+        var nextId = await _sqlSequenceService.GetNextNewsArticleIdAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(nextId) || nextId.Length > NewsArticleValidationHelper.MaxIdLength)
+        {
+            throw new InvalidOperationException($"Mã bài viết nhân bản tự động '{nextId}' vượt quá độ dài cho phép ({NewsArticleValidationHelper.MaxIdLength} ký tự).");
+        }
+
+        // 3. Sao chép nội dung/category/tags; trạng thái Inactive; tác giả hiện tại; ngày mới; UpdatedBy/ModifiedDate NULL (AC 2, AC 3, AC 4, AC 7)
+        var duplicateArticle = new NewsArticle
+        {
+            NewsArticleID = nextId,
+            NewsTitle = source.NewsTitle,
+            Headline = source.Headline,
+            NewsContent = source.NewsContent,
+            NewsSource = source.NewsSource,
+            CategoryID = source.CategoryID,
+            NewsStatus = false, // AC 2: Luôn là Inactive (bản sao chưa publish)
+            CreatedByID = currentStaffId, // AC 3: Tác giả là Staff đang thực hiện thao tác
+            CreatedDate = DateTime.Now, // AC 3: Thời điểm nhân bản
+            UpdatedByID = null, // AC 4: Audit update khởi tạo NULL
+            ModifiedDate = null // AC 4: Audit update khởi tạo NULL
+        };
+
+        var tagIds = source.NewsTags?.Select(nt => nt.TagID).Distinct().ToList() ?? new List<int>();
+
+        // 4. Lưu atomic bài viết mới và các tags phụ thuộc trong transaction (AC 5, AC 6)
+        await _articleRepository.CreateWithTagsAsync(duplicateArticle, tagIds, cancellationToken);
+
+        // 5. Trả về DTO của bản sao vừa tạo
+        var createdDto = await GetByIdAsync(nextId, activeOnly: null, cancellationToken);
+        return createdDto ?? throw new InvalidOperationException($"Không thể tải lại dữ liệu bài viết vừa nhân bản '{nextId}'.");
+    }
 }
 

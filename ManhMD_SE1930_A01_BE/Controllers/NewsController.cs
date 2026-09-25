@@ -121,14 +121,21 @@ public class NewsController : ControllerBase
 
     [HttpPost("{id}/duplicate")]
     [Authorize(Roles = "Staff")]
-    public IActionResult Duplicate(string id)
+    public async Task<ActionResult<NewsArticleDto>> Duplicate(string id, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new ProblemDetails
+        var accountId = GetCurrentAccountId();
+        if (!accountId.HasValue)
         {
-            Status = StatusCodes.Status501NotImplemented,
-            Title = "Chưa triển khai",
-            Detail = "Chức năng nhân bản bài viết thuộc phạm vi task FUN-014."
-        });
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Không xác định danh tính",
+                Detail = "Không tìm thấy thông tin tài khoản nhân viên hợp lệ từ phiên đăng nhập."
+            });
+        }
+
+        var duplicated = await _newsService.DuplicateAsync(id, accountId.Value, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = duplicated.NewsArticleId }, duplicated);
     }
 
     private short? GetCurrentAccountId()

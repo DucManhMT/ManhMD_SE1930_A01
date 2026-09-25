@@ -36,5 +36,10 @@ public class NewsClientService : INewsClientService
     {
         return _apiClient.DeleteNewsArticleAsync(id, cancellationToken);
     }
+
+    public Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.DuplicateNewsArticleAsync(id, cancellationToken);
+    }
 }
 

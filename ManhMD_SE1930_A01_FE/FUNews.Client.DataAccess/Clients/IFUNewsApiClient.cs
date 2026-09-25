@@ -22,6 +22,7 @@ public interface IFUNewsApiClient
     Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default);
     Task<NewsArticleApiModel> UpdateNewsArticleAsync(string id, UpdateNewsArticleApiModel request, CancellationToken cancellationToken = default);
     Task DeleteNewsArticleAsync(string id, CancellationToken cancellationToken = default);
+    Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default);
 
     Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default);
     Task<AccountApiModel?> GetAccountByIdAsync(short id, CancellationToken cancellationToken = default);

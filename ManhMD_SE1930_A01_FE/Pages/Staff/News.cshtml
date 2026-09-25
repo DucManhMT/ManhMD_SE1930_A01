@@ -318,13 +318,18 @@
                                     }
                                 </td>
 
-                                <!-- Thao tác (AC: Chi tiết, Sửa, Xóa) -->
+                                <!-- Thao tác (AC: Chi tiết, Nhân bản, Sửa, Xóa) -->
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1">
                                         <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
                                                 data-news-id="@article.NewsArticleId"
                                                 title="Xem chi tiết bài viết">
                                             <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                                data-news-id="@article.NewsArticleId"
+                                                title="Nhân bản bài viết">
+                                            <i class="bi bi-files"></i>
                                         </button>
                                         <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
                                                 data-news-id="@article.NewsArticleId"
@@ -1174,6 +1179,11 @@
                                                 title="Xem chi tiết bài viết">
                                             <i class="bi bi-eye"></i>
                                         </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                                data-news-id="${escapeHtml(a.newsArticleId)}"
+                                                title="Nhân bản bài viết">
+                                            <i class="bi bi-files"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
                                                 data-news-id="${escapeHtml(a.newsArticleId)}"
                                                 title="Sửa bài viết">
@@ -1191,6 +1201,7 @@
 
                             tbody.prepend(newRow);
                             bindDetailButtons(newRow);
+                            bindDuplicateButtons(newRow);
                             bindEditButtons(newRow);
                             bindDeleteButtons(newRow);
 
@@ -1341,70 +1352,214 @@
 
             modalEditEl?.addEventListener('hidden.bs.modal', resetEditForm);
 
+            async function openEditModal(newsId) {
+                if (!newsId) return;
+
+                resetEditForm();
+                editModal?.show();
+
+                try {
+                    const response = await fetch(`/staff/news?handler=Detail&id=${encodeURIComponent(newsId)}`, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const result = await response.json();
+
+                    if (result && result.success && result.article) {
+                        const a = result.article;
+
+                        // Pre-fill hidden ID
+                        if (editArticleIdInput) editArticleIdInput.value = a.newsArticleId;
+
+                        // Pre-fill text fields
+                        if (editHeadlineInput) { editHeadlineInput.value = a.headline || ''; document.getElementById('editNewsHeadlineCount').textContent = editHeadlineInput.value.length; }
+                        if (editTitleInput) { editTitleInput.value = a.newsTitle || ''; document.getElementById('editNewsTitleCount').textContent = editTitleInput.value.length; }
+                        if (editSourceInput) { editSourceInput.value = a.newsSource || ''; document.getElementById('editNewsSourceCount').textContent = editSourceInput.value.length; }
+                        if (editContentTextarea) { editContentTextarea.value = a.newsContent || ''; document.getElementById('editNewsContentCount').textContent = editContentTextarea.value.length; }
+
+                        // Pre-fill category
+                        if (editCategorySelect && a.categoryId) {
+                            editCategorySelect.value = a.categoryId.toString();
+                        }
+
+                        // Pre-fill status
+                        if (editStatusSelect) {
+                            editStatusSelect.value = a.newsStatus === true ? 'true' : 'false';
+                        }
+
+                        // Pre-tick tags
+                        document.querySelectorAll('.edit-news-tag-cb').forEach(cb => {
+                            const tagId = parseInt(cb.value);
+                            cb.checked = a.tags && a.tags.some(t => t.tagId === tagId);
+                        });
+
+                        // Show form, hide spinner
+                        if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
+                        if (editFormContent) editFormContent.classList.remove('d-none');
+                    } else {
+                        const msg = result?.message || 'Không thể tải dữ liệu bài viết để sửa.';
+                        if (editAlertText) editAlertText.textContent = msg;
+                        if (editAlert) editAlert.classList.remove('d-none');
+                        if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
+                    }
+                } catch (err) {
+                    if (editAlertText) editAlertText.textContent = 'Lỗi kết nối khi tải dữ liệu bài viết.';
+                    if (editAlert) editAlert.classList.remove('d-none');
+                    if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
+                }
+            }
+
             function bindEditButtons(container = document) {
                 container.querySelectorAll('.btn-edit-news').forEach(btn => {
                     if (btn.hasAttribute('data-edit-bound')) return;
                     btn.setAttribute('data-edit-bound', 'true');
 
+                    btn.addEventListener('click', function () {
+                        const newsId = this.getAttribute('data-news-id');
+                        openEditModal(newsId);
+                    });
+                });
+            }
+            bindEditButtons();
+
+            // ==========================================
+            // NHÂN BẢN BÀI VIẾT (FUN-014)
+            // ==========================================
+            function bindDuplicateButtons(container = document) {
+                container.querySelectorAll('.btn-duplicate-news').forEach(btn => {
+                    if (btn.hasAttribute('data-duplicate-bound')) return;
+                    btn.setAttribute('data-duplicate-bound', 'true');
+
                     btn.addEventListener('click', async function () {
                         const newsId = this.getAttribute('data-news-id');
                         if (!newsId) return;
 
-                        resetEditForm();
-                        editModal?.show();
+                        const originalHtml = this.innerHTML;
+                        this.disabled = true;
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
                         try {
-                            const response = await fetch(`/staff/news?handler=Detail&id=${encodeURIComponent(newsId)}`, {
-                                headers: { 'Accept': 'application/json' }
+                            const response = await fetch('/staff/news?handler=Duplicate', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': getCsrfToken(),
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ newsArticleId: newsId })
                             });
                             const result = await response.json();
 
                             if (result && result.success && result.article) {
                                 const a = result.article;
+                                showToast(true, result.message || `Nhân bản bài viết thành công. Bản sao mới có mã '${a.newsArticleId}'.`);
 
-                                // Pre-fill hidden ID
-                                if (editArticleIdInput) editArticleIdInput.value = a.newsArticleId;
+                                // Xóa dòng rỗng nếu có
+                                const emptyRow = document.getElementById('rowEmptyNews');
+                                if (emptyRow) emptyRow.remove();
 
-                                // Pre-fill text fields
-                                if (editHeadlineInput) { editHeadlineInput.value = a.headline || ''; document.getElementById('editNewsHeadlineCount').textContent = editHeadlineInput.value.length; }
-                                if (editTitleInput) { editTitleInput.value = a.newsTitle || ''; document.getElementById('editNewsTitleCount').textContent = editTitleInput.value.length; }
-                                if (editSourceInput) { editSourceInput.value = a.newsSource || ''; document.getElementById('editNewsSourceCount').textContent = editSourceInput.value.length; }
-                                if (editContentTextarea) { editContentTextarea.value = a.newsContent || ''; document.getElementById('editNewsContentCount').textContent = editContentTextarea.value.length; }
+                                // Cập nhật DOM: Chèn bài viết mới vào đầu danh sách
+                                const tbody = document.getElementById('tableNewsBody');
+                                if (tbody) {
+                                    const newRow = document.createElement('tr');
+                                    newRow.id = `row-news-${a.newsArticleId}`;
+                                    newRow.className = 'table-info-subtle'; // Highlight nhẹ bản sao mới
 
-                                // Pre-fill category
-                                if (editCategorySelect && a.categoryId) {
-                                    editCategorySelect.value = a.categoryId.toString();
+                                    // Tags html
+                                    let tagsHtml = '<span class="text-muted small">—</span>';
+                                    if (a.tags && a.tags.length > 0) {
+                                        const tagBadges = a.tags.slice(0, 3).map(t =>
+                                            `<span class="badge bg-light text-dark border px-2 py-0 small">#${escapeHtml(t.tagName)}</span>`
+                                        ).join(' ');
+                                        const moreBadge = a.tags.length > 3 ? `<span class="badge bg-secondary-subtle text-secondary border px-1 py-0 small">+${a.tags.length - 3}</span>` : '';
+                                        tagsHtml = `<div class="d-flex flex-wrap gap-1">${tagBadges} ${moreBadge}</div>`;
+                                    }
+
+                                    // Status badge (bản sao luôn Inactive)
+                                    const statusBadge = a.newsStatus === true
+                                        ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Đang hiển thị</span>'
+                                        : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-eye-slash-fill me-1"></i>Tạm ẩn</span>';
+
+                                    const formattedDate = a.createdDate ? new Date(a.createdDate).toLocaleString('vi-VN') : 'Vừa xong';
+
+                                    newRow.innerHTML = `
+                                        <td class="text-center fw-semibold text-muted small">
+                                            <span class="badge bg-light text-dark border">${escapeHtml(a.newsArticleId)}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-dark mb-1 lh-sm">${escapeHtml(a.newsTitle || 'Không có tiêu đề')}</div>
+                                            <div class="text-secondary small text-truncate" style="max-width: 320px;" title="${escapeHtml(a.headline)}">${escapeHtml(a.headline)}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi bi-folder text-primary me-1"></i>${escapeHtml(a.categoryName || 'Chưa phân loại')}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="small fw-semibold text-secondary">
+                                                <i class="bi bi-person text-secondary me-1"></i>${escapeHtml(a.authorName || 'Chưa ghi nhận')}
+                                            </span>
+                                        </td>
+                                        <td class="small text-muted">${formattedDate}</td>
+                                        <td class="text-center">${statusBadge}</td>
+                                        <td>${tagsHtml}</td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <button type="button" class="btn btn-outline-primary btn-sm btn-view-news"
+                                                        data-news-id="${escapeHtml(a.newsArticleId)}"
+                                                        title="Xem chi tiết bài viết">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm btn-duplicate-news"
+                                                        data-news-id="${escapeHtml(a.newsArticleId)}"
+                                                        title="Nhân bản bài viết">
+                                                    <i class="bi bi-files"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-warning btn-sm btn-edit-news"
+                                                        data-news-id="${escapeHtml(a.newsArticleId)}"
+                                                        title="Sửa bài viết">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-news"
+                                                        data-news-id="${escapeHtml(a.newsArticleId)}"
+                                                        data-news-title="${escapeHtml(a.newsTitle || a.headline)}"
+                                                        title="Xóa bài viết">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    `;
+
+                                    tbody.prepend(newRow);
+                                    bindDetailButtons(newRow);
+                                    bindDuplicateButtons(newRow);
+                                    bindEditButtons(newRow);
+                                    bindDeleteButtons(newRow);
+
+                                    // Cập nhật tổng số bài trên badge
+                                    const badgeTotal = document.getElementById('badgeTotalNewsCount');
+                                    if (badgeTotal) {
+                                        const currentTotal = parseInt(badgeTotal.textContent) || 0;
+                                        badgeTotal.textContent = (currentTotal + 1).toString();
+                                    }
                                 }
 
-                                // Pre-fill status
-                                if (editStatusSelect) {
-                                    editStatusSelect.value = a.newsStatus === true ? 'true' : 'false';
-                                }
-
-                                // Pre-tick tags
-                                document.querySelectorAll('.edit-news-tag-cb').forEach(cb => {
-                                    const tagId = parseInt(cb.value);
-                                    cb.checked = a.tags && a.tags.some(t => t.tagId === tagId);
-                                });
-
-                                // Show form, hide spinner
-                                if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
-                                if (editFormContent) editFormContent.classList.remove('d-none');
+                                // Tự động mở modal sửa bản sao theo Design Standard:
+                                // "Nhân bản là mutation có loading, khi xong mở bản sao Inactive để sửa; không publish ngay."
+                                openEditModal(a.newsArticleId);
                             } else {
-                                const msg = result?.message || 'Không thể tải dữ liệu bài viết để sửa.';
-                                if (editAlertText) editAlertText.textContent = msg;
-                                if (editAlert) editAlert.classList.remove('d-none');
-                                if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
+                                const msg = result?.message || 'Không thể nhân bản bài viết. Vui lòng thử lại.';
+                                showToast(false, msg);
                             }
                         } catch (err) {
-                            if (editAlertText) editAlertText.textContent = 'Lỗi kết nối khi tải dữ liệu bài viết.';
-                            if (editAlert) editAlert.classList.remove('d-none');
-                            if (editSpinnerLoad) editSpinnerLoad.classList.add('d-none');
+                            showToast(false, 'Lỗi kết nối khi gửi yêu cầu nhân bản bài viết.');
+                        } finally {
+                            this.disabled = false;
+                            this.innerHTML = originalHtml;
                         }
                     });
                 });
             }
-            bindEditButtons();
+            bindDuplicateButtons();
 
             formEdit?.addEventListener('submit', async function (e) {
                 e.preventDefault();

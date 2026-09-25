@@ -135,6 +135,35 @@ public class NewsRazorPageTests
             Articles.Remove(article);
             return Task.CompletedTask;
         }
+
+        public Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default)
+        {
+            var source = Articles.FirstOrDefault(a => a.NewsArticleId == id);
+            if (source == null)
+            {
+                throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, $"Không tìm thấy bài viết nguồn mã '{id}'.");
+            }
+
+            var duplicated = new NewsArticleApiModel
+            {
+                NewsArticleId = $"N{Articles.Count + 1}",
+                NewsTitle = source.NewsTitle,
+                Headline = source.Headline,
+                NewsContent = source.NewsContent,
+                NewsSource = source.NewsSource,
+                CategoryId = source.CategoryId,
+                CategoryName = source.CategoryName,
+                NewsStatus = false, // Luôn Inactive theo AC 2
+                CreatedById = 3,
+                AuthorName = "Isabella David",
+                CreatedDate = DateTime.Now,
+                UpdatedById = null,
+                ModifiedDate = null,
+                Tags = source.Tags?.ToList() ?? new List<TagApiModel>()
+            };
+            Articles.Add(duplicated);
+            return Task.FromResult(duplicated);
+        }
     }
 
     private class FakeCategoryClientService : ICategoryClientService
@@ -551,6 +580,97 @@ public class NewsRazorPageTests
         var errors = errorsProp.GetValue(jsonResult.Value) as IDictionary<string, string[]>;
         Assert.NotNull(errors);
         Assert.True(errors.ContainsKey("CategoryId") || errors.ContainsKey("categoryId"));
+    }
+
+    [Fact]
+    public async Task OnPostDuplicateAsync_WithValidId_DuplicatesArticleAsInactiveAndReturnsSuccess()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new DuplicateNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01"
+        };
+
+        var result = await pageModel.OnPostDuplicateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        var articleProp = type.GetProperty("article");
+        Assert.NotNull(articleProp);
+        var duplicated = articleProp.GetValue(jsonResult.Value) as NewsArticleApiModel;
+        Assert.NotNull(duplicated);
+
+        // AC 1: ID mới
+        Assert.NotEqual("ART_01", duplicated.NewsArticleId);
+        // AC 2: Trạng thái Inactive
+        Assert.False(duplicated.NewsStatus);
+        // AC 3: Tác giả hiện tại
+        Assert.Equal((short)3, duplicated.CreatedById);
+        // AC 4: Audit update NULL
+        Assert.Null(duplicated.UpdatedById);
+        Assert.Null(duplicated.ModifiedDate);
+        // Service lưu thêm bài mới
+        Assert.Equal(3, fakeNews.Articles.Count);
+    }
+
+    [Fact]
+    public async Task OnPostDuplicateAsync_WithEmptyId_ReturnsValidationError()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new DuplicateNewsArticleInputModel
+        {
+            NewsArticleId = ""
+        };
+
+        var result = await pageModel.OnPostDuplicateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var msgProp = type.GetProperty("message");
+        Assert.NotNull(msgProp);
+        Assert.Equal("Mã bài viết không hợp lệ.", msgProp.GetValue(jsonResult.Value));
+    }
+
+    [Fact]
+    public async Task OnPostDuplicateAsync_WhenApiThrowsNotFound_ReturnsFailureJson()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var pageModel = CreatePageModel(fakeNews);
+
+        var input = new DuplicateNewsArticleInputModel
+        {
+            NewsArticleId = "NON_EXISTING_ID"
+        };
+
+        var result = await pageModel.OnPostDuplicateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var msgProp = type.GetProperty("message");
+        Assert.NotNull(msgProp);
+        Assert.Contains("Không tìm thấy", msgProp.GetValue(jsonResult.Value)?.ToString());
     }
 }
 

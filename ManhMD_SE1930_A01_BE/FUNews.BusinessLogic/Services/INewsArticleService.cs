@@ -10,4 +10,5 @@ public interface INewsArticleService
     Task<NewsArticleDto> CreateAsync(CreateNewsArticleRequestDto request, short createdById, CancellationToken cancellationToken = default);
     Task<NewsArticleDto> UpdateAsync(string id, UpdateNewsArticleRequestDto request, short updatedById, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
+    Task<NewsArticleDto> DuplicateAsync(string sourceId, short currentStaffId, CancellationToken cancellationToken = default);
 }
