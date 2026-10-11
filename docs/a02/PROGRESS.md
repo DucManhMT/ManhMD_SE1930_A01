@@ -2,7 +2,7 @@
 
 | Mã Task | Tên Nhiệm Vụ | Trạng Thái | Người Thực Hiện | Ngày Hoàn Thành | Ghi Chú / Bằng Chứng |
 |:---:|:---|:---:|:---:|:---:|:---|
-| **A02-001** | Baseline và đồng bộ tài liệu từ A01 | `TODO` | AI Agent | — | Khảo sát hiện trạng, kiểm tra build và tests A01 |
+| **A02-001** | Baseline và đồng bộ tài liệu từ A01 | `DONE` | AI Agent | 2026-10-11 | Build 2 solutions 0 error, 100 client tests passed, tạo báo cáo hiện trạng |
 | **A02-002** | Khởi tạo cấu trúc 4 Solutions độc lập | `TODO` | AI Agent | — | 4 Solutions theo chuẩn đề bài mục 6 |
 | **A02-003** | Core API: JWT Refresh Token Flow | `TODO` | AI Agent | — | Endpoint `/api/auth/refresh` và bảng RefreshToken |
 | **A02-004** | FE: HttpClients, DelegatingHandler & Polly | `TODO` | AI Agent | — | 3 Typed HttpClients và Retry Policy |
