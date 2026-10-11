@@ -9,7 +9,7 @@
 | **A02-005** | Database: Migration Schema bổ sung A02 | `DONE` | AI Agent | 2026-10-11 | Bảng AuditLog, NewsView, TagLearning, cột NewsImage, 5/5 tests pass |
 | **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `DONE` | AI Agent | 2026-10-11 | Tự động ghi Before/After JSON, GET /api/auditlog, chặn xóa quan hệ, 3/3 tests pass |
 | **A02-007** | Core API & FE: Upload và hiển thị ảnh bài viết | `DONE` | AI Agent | 2026-10-11 | Upload PNG/JPG < 5MB, chặn 413/415, magic bytes, StaticFiles, preview modal & hiển thị bài viết |
-| **A02-008** | Analytics API: Dashboard, Trending, Recommend | `TODO` | AI Agent | — | Endpoints tính toán số liệu và trending |
+| **A02-008** | Analytics API: Dashboard, Trending, Recommend | `DONE` | AI Agent | 2026-10-11 | Dashboard stats, Trending, Recommend 3 bài, Export ClosedXML, 7 tests pass |
 | **A02-009** | FE & Analytics: Dashboard Chart.js & Export Excel | `TODO` | AI Agent | — | Vẽ biểu đồ Pie/Bar và tải file Excel `.xlsx` |
 | **A02-010** | AI API: Tag Suggestions & Learning Cache | `TODO` | AI Agent | — | Trích xuất từ khóa và lưu trọng số tag |
 | **A02-011** | FE: AI Tag Badges/Chips & Feedback Loop | `TODO` | AI Agent | — | Badges/Chips chọn nhanh tag trên modal |

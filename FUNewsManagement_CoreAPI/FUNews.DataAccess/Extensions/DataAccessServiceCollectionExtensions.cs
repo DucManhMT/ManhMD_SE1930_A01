@@ -46,6 +46,7 @@ public static class DataAccessServiceCollectionExtensions
         services.AddScoped<INewsTagRepository, NewsTagRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<INewsViewRepository, NewsViewRepository>();
 
         return services;
     }

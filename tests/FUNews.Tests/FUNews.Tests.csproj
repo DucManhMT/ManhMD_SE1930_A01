@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\FUNewsManagement_CoreAPI\FUNews.BusinessLogic\FUNews.BusinessLogic.csproj" />
     <ProjectReference Include="..\..\FUNewsManagement_CoreAPI\FUNews.DataAccess\FUNews.DataAccess.csproj" />
     <ProjectReference Include="..\..\FUNewsManagement_FE\FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_AnalyticsAPI\FUNewsManagement_AnalyticsAPI.csproj" />
   </ItemGroup>
 
 </Project>

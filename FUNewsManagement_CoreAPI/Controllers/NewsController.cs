@@ -14,11 +14,16 @@ public class NewsController : ControllerBase
 {
     private readonly INewsArticleService _newsService;
     private readonly IMediaService _mediaService;
+    private readonly FUNews.DataAccess.Repositories.INewsViewRepository _viewRepository;
 
-    public NewsController(INewsArticleService newsService, IMediaService mediaService)
+    public NewsController(
+        INewsArticleService newsService,
+        IMediaService mediaService,
+        FUNews.DataAccess.Repositories.INewsViewRepository viewRepository)
     {
         _newsService = newsService ?? throw new ArgumentNullException(nameof(newsService));
         _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
+        _viewRepository = viewRepository ?? throw new ArgumentNullException(nameof(viewRepository));
     }
 
     [HttpGet]
@@ -210,6 +215,34 @@ public class NewsController : ControllerBase
         {
             ImageUrl = relativeUrl
         });
+    }
+
+    [HttpPost("{id}/view")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RecordView(string id, CancellationToken cancellationToken)
+    {
+        var exists = await _newsService.GetByIdAsync(id, cancellationToken: cancellationToken);
+        if (exists == null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Bài viết không tồn tại",
+                Detail = $"Không tìm thấy bài viết với mã '{id}' để ghi nhận lượt xem."
+            });
+        }
+
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        await _viewRepository.RecordViewAsync(id, ip, cancellationToken);
+        return Ok(new { success = true, articleId = id });
+    }
+
+    [HttpGet("views/stats")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Dictionary<string, int>>> GetViewStats(CancellationToken cancellationToken)
+    {
+        var stats = await _viewRepository.GetViewStatsAsync(cancellationToken);
+        return Ok(stats);
     }
 
     private short? GetCurrentAccountId()
