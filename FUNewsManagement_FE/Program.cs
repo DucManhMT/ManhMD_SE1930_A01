@@ -1,6 +1,7 @@
 using FUNews.Client.BusinessLogic.Extensions;
 using FUNews.Client.DataAccess.Clients;
 using FUNews.Client.DataAccess.Extensions;
+using FUNewsManagement_FE.Hubs;
 using ManhMD_SE1930_A01_FE.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -11,6 +12,11 @@ builder.Services.AddRazorPages(options =>
 {
     // Cấu hình convention nếu cần, Razor Pages tự động enforce antiforgery token trên POST
 });
+
+// SignalR Realtime Notification Services
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<INotificationStore, NotificationStore>();
+builder.Services.AddSingleton<IRealtimeNotificationService, RealtimeNotificationService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITokenProvider, HttpContextTokenProvider>();
@@ -91,5 +97,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

@@ -3,6 +3,7 @@ using FUNews.Client.BusinessLogic.Helpers;
 using FUNews.Client.BusinessLogic.Services;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.Client.DataAccess.Models;
+using FUNewsManagement_FE.Hubs;
 using ManhMD_SE1930_A01_FE.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class NewsModel : PageModel
     private readonly ICategoryClientService _categoryClientService;
     private readonly ITagClientService _tagClientService;
     private readonly IAiClientService _aiClientService;
+    private readonly IRealtimeNotificationService? _notificationService;
     private readonly ILogger<NewsModel> _logger;
 
     public NewsModel(
@@ -24,13 +26,15 @@ public class NewsModel : PageModel
         ICategoryClientService categoryClientService,
         ITagClientService tagClientService,
         IAiClientService aiClientService,
-        ILogger<NewsModel> logger)
+        ILogger<NewsModel> logger,
+        IRealtimeNotificationService? notificationService = null)
     {
         _newsClientService = newsClientService ?? throw new ArgumentNullException(nameof(newsClientService));
         _categoryClientService = categoryClientService ?? throw new ArgumentNullException(nameof(categoryClientService));
         _tagClientService = tagClientService ?? throw new ArgumentNullException(nameof(tagClientService));
         _aiClientService = aiClientService ?? throw new ArgumentNullException(nameof(aiClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _notificationService = notificationService;
     }
 
     public List<NewsArticleApiModel> NewsArticles { get; set; } = new();
@@ -211,6 +215,19 @@ public class NewsModel : PageModel
             if (input.TagIds != null && input.TagIds.Count > 0)
             {
                 _ = _aiClientService.SubmitMultipleTagFeedbacksAsync(input.TagIds, createdArticle.NewsArticleId, cancellationToken);
+            }
+
+            // Bắn thông báo thời gian thực qua SignalR tới tất cả người dùng đang online
+            if (_notificationService != null)
+            {
+                _ = _notificationService.BroadcastNewArticleAsync(new ArticleNotificationModel
+                {
+                    ArticleId = createdArticle.NewsArticleId,
+                    Title = string.IsNullOrWhiteSpace(createdArticle.NewsTitle) ? createdArticle.Headline : createdArticle.NewsTitle,
+                    CategoryName = createdArticle.CategoryName,
+                    Author = createdArticle.AuthorName ?? "Nhân viên biên tập",
+                    CreatedDate = createdArticle.CreatedDate ?? DateTime.UtcNow
+                }, cancellationToken);
             }
 
             return new JsonResult(new

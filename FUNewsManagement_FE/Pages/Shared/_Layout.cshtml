@@ -103,6 +103,41 @@
                     </ul>
 
                     <div class="d-flex align-items-center flex-wrap gap-2">
+                        <!-- Dropdown Thông Báo Thời Gian Thực (SignalR Bell) -->
+                        <div class="dropdown me-1">
+                            <button class="btn btn-outline-secondary btn-sm position-relative rounded-circle p-2 d-flex align-items-center justify-content-center" 
+                                    type="button" 
+                                    id="btnNotificationBell" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false" 
+                                    title="Thông báo bài viết mới"
+                                    style="width: 36px; height: 36px;">
+                                <i class="bi bi-bell-fill fs-6"></i>
+                                <span id="notificationCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem;">
+                                    0
+                                    <span class="visually-hidden">thông báo mới</span>
+                                </span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0" aria-labelledby="btnNotificationBell" style="width: 320px; max-width: 90vw;">
+                                <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom rounded-top">
+                                    <span class="fw-bold small text-dark"><i class="bi bi-bell me-1 text-primary"></i>Thông Báo Mới</span>
+                                    <button class="btn btn-link btn-sm p-0 text-decoration-none text-muted small" id="btnClearNotifications" title="Đánh dấu đã xem">
+                                        Đã đọc
+                                    </button>
+                                </div>
+                                <ul class="list-unstyled mb-0 overflow-auto" id="notificationDropdownList" style="max-height: 350px;">
+                                    <!-- Render các item thông báo tại đây -->
+                                </ul>
+                                <div id="notificationEmptyNotice" class="text-center py-4 text-muted small">
+                                    <i class="bi bi-chat-square-dots fs-3 d-block mb-1 text-muted opacity-50"></i>
+                                    Chưa có thông báo bài viết mới nào.
+                                </div>
+                                <div class="p-2 bg-light text-center border-top rounded-bottom small text-muted">
+                                    Lưu trữ tối đa 10 thông báo gần nhất
+                                </div>
+                            </div>
+                        </div>
+
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <div class="d-flex align-items-center me-2 text-dark small">
@@ -256,6 +291,8 @@
             });
         </script>
     }
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script src="~/js/notification-client.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
