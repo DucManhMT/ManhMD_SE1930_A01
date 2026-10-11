@@ -6,7 +6,7 @@
 | **A02-002** | Khởi tạo cấu trúc 4 Solutions độc lập | `DONE` | AI Agent | 2026-10-11 | Chuẩn hóa 4 .sln theo Option B, phân port 7000-7003, build thành công 0 error |
 | **A02-003** | Core API: JWT Refresh Token Flow | `DONE` | AI Agent | 2026-10-11 | Endpoint /api/auth/refresh, Token Rotation, bảng RefreshToken, 3/3 tests pass |
 | **A02-004** | FE: HttpClients, DelegatingHandler & Polly | `DONE` | AI Agent | 2026-10-11 | 3 Typed HttpClients, DelegatingHandler refresh 401, Polly Retry GET, 105 tests pass |
-| **A02-005** | Database: Migration Schema bổ sung A02 | `TODO` | AI Agent | — | Chạy script SQL mở rộng |
+| **A02-005** | Database: Migration Schema bổ sung A02 | `DONE` | AI Agent | 2026-10-11 | Bảng AuditLog, NewsView, TagLearning, cột NewsImage, 5/5 tests pass |
 | **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `TODO` | AI Agent | — | Tự động ghi Before/After JSON và chặn xóa dữ liệu |
 | **A02-007** | Core API & FE: Upload và hiển thị ảnh bài viết | `TODO` | AI Agent | — | Xử lý multipart/form-data ảnh và hiển thị UI |
 | **A02-008** | Analytics API: Dashboard, Trending, Recommend | `TODO` | AI Agent | — | Endpoints tính toán số liệu và trending |

@@ -16,6 +16,9 @@ public class FUNewsDbContext : DbContext
     public virtual DbSet<SystemAccount> SystemAccounts { get; set; } = null!;
     public virtual DbSet<Tag> Tags { get; set; } = null!;
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public virtual DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public virtual DbSet<NewsView> NewsViews { get; set; } = null!;
+    public virtual DbSet<TagLearning> TagLearnings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,6 +136,10 @@ public class FUNewsDbContext : DbContext
             entity.Property(e => e.NewsSource)
                 .HasMaxLength(400);
 
+            entity.Property(e => e.NewsImage)
+                .HasMaxLength(500)
+                .IsRequired(false);
+
             // Foreign keys: NO ACTION / Restrict to prevent cascade deletion
             entity.HasOne(d => d.Category)
                 .WithMany(p => p.NewsArticles)
@@ -188,5 +195,54 @@ public class FUNewsDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired(false);
         });
+
+        // AuditLog
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("AuditLog");
+            entity.HasKey(e => e.AuditID).HasName("PK_AuditLog");
+            entity.Property(e => e.AuditID).ValueGeneratedOnAdd();
+            entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Entity).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityID).HasMaxLength(50).IsRequired(false);
+            entity.Property(e => e.UserName).HasMaxLength(100).IsRequired(false);
+            entity.Property(e => e.BeforeJSON).IsRequired(false);
+            entity.Property(e => e.AfterJSON).IsRequired(false);
+            entity.Property(e => e.Timestamp).IsRequired();
+            entity.HasIndex(e => e.Timestamp);
+        });
+
+        // NewsView
+        modelBuilder.Entity<NewsView>(entity =>
+        {
+            entity.ToTable("NewsView");
+            entity.HasKey(e => e.ViewID).HasName("PK_NewsView");
+            entity.Property(e => e.ViewID).ValueGeneratedOnAdd();
+            entity.Property(e => e.NewsArticleID).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.VisitorIP).HasMaxLength(50).IsRequired(false);
+            entity.Property(e => e.ViewedAt).IsRequired();
+            entity.HasOne(d => d.NewsArticle)
+                .WithMany(p => p.NewsViews)
+                .HasForeignKey(d => d.NewsArticleID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_NewsView_NewsArticle");
+            entity.HasIndex(e => new { e.NewsArticleID, e.ViewedAt });
+        });
+
+        // TagLearning
+        modelBuilder.Entity<TagLearning>(entity =>
+        {
+            entity.ToTable("TagLearning");
+            entity.HasKey(e => e.TagID).HasName("PK_TagLearning");
+            entity.Property(e => e.TagID).ValueGeneratedNever();
+            entity.Property(e => e.SelectionCount).IsRequired();
+            entity.Property(e => e.LastSelectedAt).IsRequired();
+            entity.HasOne(d => d.Tag)
+                .WithOne(p => p.TagLearning)
+                .HasForeignKey<TagLearning>(d => d.TagID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_TagLearning_Tag");
+        });
     }
 }
+

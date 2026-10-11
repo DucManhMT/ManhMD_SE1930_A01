@@ -24,6 +24,8 @@ public class NewsArticle
 
     public DateTime? ModifiedDate { get; set; }
 
+    public string? NewsImage { get; set; }
+
     // Navigation properties
     public virtual Category? Category { get; set; }
 
@@ -32,4 +34,6 @@ public class NewsArticle
     public virtual SystemAccount? UpdatedBy { get; set; }
 
     public virtual ICollection<NewsTag> NewsTags { get; set; } = new List<NewsTag>();
+
+    public virtual ICollection<NewsView> NewsViews { get; set; } = new List<NewsView>();
 }

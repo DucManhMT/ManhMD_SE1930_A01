@@ -10,4 +10,6 @@ public class Tag
 
     // Navigation properties
     public virtual ICollection<NewsTag> NewsTags { get; set; } = new List<NewsTag>();
+
+    public virtual TagLearning? TagLearning { get; set; }
 }
