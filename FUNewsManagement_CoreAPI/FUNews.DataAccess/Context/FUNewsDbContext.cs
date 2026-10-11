@@ -1,13 +1,18 @@
+using System.Text.Json;
 using FUNews.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace FUNews.DataAccess.Context;
 
 public class FUNewsDbContext : DbContext
 {
-    public FUNewsDbContext(DbContextOptions<FUNewsDbContext> options)
+    private readonly ICurrentUserContext? _currentUserContext;
+
+    public FUNewsDbContext(DbContextOptions<FUNewsDbContext> options, ICurrentUserContext? currentUserContext = null)
         : base(options)
     {
+        _currentUserContext = currentUserContext;
     }
 
     public virtual DbSet<Category> Categories { get; set; } = null!;
@@ -244,5 +249,160 @@ public class FUNewsDbContext : DbContext
                 .HasConstraintName("FK_TagLearning_Tag");
         });
     }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var auditEntries = OnBeforeSaveChanges();
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        if (auditEntries.Count > 0)
+        {
+            await OnAfterSaveChanges(auditEntries, cancellationToken);
+        }
+
+        return result;
+    }
+
+    public override int SaveChanges()
+    {
+        return SaveChangesAsync().GetAwaiter().GetResult();
+    }
+
+    private List<AuditEntry> OnBeforeSaveChanges()
+    {
+        ChangeTracker.DetectChanges();
+        var auditEntries = new List<AuditEntry>();
+
+        var userId = _currentUserContext?.UserId;
+        var userName = _currentUserContext?.UserName ?? "System";
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is not (NewsArticle or Category or Tag or SystemAccount))
+            {
+                continue;
+            }
+
+            if (entry.State is EntityState.Detached or EntityState.Unchanged)
+            {
+                continue;
+            }
+
+            var auditEntry = new AuditEntry(entry)
+            {
+                TableName = entry.Entity.GetType().Name,
+                UserId = userId,
+                UserName = userName
+            };
+
+            auditEntries.Add(auditEntry);
+
+            foreach (var property in entry.Properties)
+            {
+                if (property.IsTemporary)
+                {
+                    auditEntry.TemporaryProperties.Add(property);
+                    continue;
+                }
+
+                var propertyName = property.Metadata.Name;
+                if (property.Metadata.IsPrimaryKey())
+                {
+                    auditEntry.KeyValues[propertyName] = property.CurrentValue;
+                    continue;
+                }
+
+                var currentValue = property.CurrentValue;
+                var originalValue = property.OriginalValue;
+
+                // Ẩn mật khẩu khi ghi audit
+                if (propertyName.Equals("AccountPassword", StringComparison.OrdinalIgnoreCase))
+                {
+                    currentValue = "********";
+                    originalValue = "********";
+                }
+
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        auditEntry.Action = "CREATE";
+                        auditEntry.NewValues[propertyName] = currentValue;
+                        break;
+
+                    case EntityState.Deleted:
+                        auditEntry.Action = "DELETE";
+                        auditEntry.OldValues[propertyName] = originalValue;
+                        break;
+
+                    case EntityState.Modified:
+                        if (property.IsModified)
+                        {
+                            auditEntry.Action = "UPDATE";
+                            auditEntry.OldValues[propertyName] = originalValue;
+                            auditEntry.NewValues[propertyName] = currentValue;
+                        }
+                        break;
+                }
+            }
+        }
+
+        return auditEntries;
+    }
+
+    private async Task OnAfterSaveChanges(List<AuditEntry> auditEntries, CancellationToken cancellationToken)
+    {
+        foreach (var auditEntry in auditEntries)
+        {
+            foreach (var prop in auditEntry.TemporaryProperties)
+            {
+                if (prop.Metadata.IsPrimaryKey())
+                {
+                    auditEntry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+                else
+                {
+                    auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+            }
+
+            AuditLogs.Add(auditEntry.ToAuditLog());
+        }
+
+        await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private class AuditEntry
+    {
+        public EntityEntry Entry { get; }
+        public string TableName { get; set; } = string.Empty;
+        public string Action { get; set; } = "UNKNOWN";
+        public int? UserId { get; set; }
+        public string? UserName { get; set; }
+        public Dictionary<string, object?> KeyValues { get; } = new();
+        public Dictionary<string, object?> OldValues { get; } = new();
+        public Dictionary<string, object?> NewValues { get; } = new();
+        public List<PropertyEntry> TemporaryProperties { get; } = new();
+
+        public AuditEntry(EntityEntry entry)
+        {
+            Entry = entry;
+        }
+
+        public AuditLog ToAuditLog()
+        {
+            return new AuditLog
+            {
+                UserID = UserId,
+                UserName = UserName,
+                Action = Action,
+                Entity = TableName,
+                EntityID = KeyValues.Count > 0 ? string.Join(";", KeyValues.Values) : null,
+                BeforeJSON = OldValues.Count == 0 ? null : JsonSerializer.Serialize(OldValues),
+                AfterJSON = NewValues.Count == 0 ? null : JsonSerializer.Serialize(NewValues),
+                Timestamp = DateTime.UtcNow
+            };
+        }
+    }
 }
+
 

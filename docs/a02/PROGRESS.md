@@ -7,7 +7,7 @@
 | **A02-003** | Core API: JWT Refresh Token Flow | `DONE` | AI Agent | 2026-10-11 | Endpoint /api/auth/refresh, Token Rotation, bảng RefreshToken, 3/3 tests pass |
 | **A02-004** | FE: HttpClients, DelegatingHandler & Polly | `DONE` | AI Agent | 2026-10-11 | 3 Typed HttpClients, DelegatingHandler refresh 401, Polly Retry GET, 105 tests pass |
 | **A02-005** | Database: Migration Schema bổ sung A02 | `DONE` | AI Agent | 2026-10-11 | Bảng AuditLog, NewsView, TagLearning, cột NewsImage, 5/5 tests pass |
-| **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `TODO` | AI Agent | — | Tự động ghi Before/After JSON và chặn xóa dữ liệu |
+| **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `DONE` | AI Agent | 2026-10-11 | Tự động ghi Before/After JSON, GET /api/auditlog, chặn xóa quan hệ, 3/3 tests pass |
 | **A02-007** | Core API & FE: Upload và hiển thị ảnh bài viết | `TODO` | AI Agent | — | Xử lý multipart/form-data ảnh và hiển thị UI |
 | **A02-008** | Analytics API: Dashboard, Trending, Recommend | `TODO` | AI Agent | — | Endpoints tính toán số liệu và trending |
 | **A02-009** | FE & Analytics: Dashboard Chart.js & Export Excel | `TODO` | AI Agent | — | Vẽ biểu đồ Pie/Bar và tải file Excel `.xlsx` |

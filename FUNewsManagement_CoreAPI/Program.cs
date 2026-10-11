@@ -66,6 +66,9 @@ if (!string.IsNullOrWhiteSpace(envSigningKey))
     builder.Configuration["Jwt:SigningKey"] = envSigningKey;
 }
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<FUNews.DataAccess.Context.ICurrentUserContext, ManhMD_SE1930_A01_BE.Services.HttpCurrentUserContext>();
+
 // Register DataAccess (Scoped DbContext, Scoped DAOs & Repositories, Sequences, PasswordHasher)
 builder.Services.AddFUNewsDataAccess(connectionString);
 
