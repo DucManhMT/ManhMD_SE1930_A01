@@ -15,6 +15,7 @@ public static class ClientBusinessLogicServiceCollectionExtensions
         services.AddScoped<IReportClientService, ReportClientService>();
         services.AddScoped<IAnalyticsClientService, AnalyticsClientService>();
         services.AddScoped<IAiClientService, AiClientService>();
+        services.AddScoped<IAuditLogClientService, AuditLogClientService>();
 
         return services;
     }

@@ -22,7 +22,7 @@ public static class ODataFilterHelper
     {
         var filters = new List<string>();
 
-        if (roleFilter.HasValue && (roleFilter.Value == 1 || roleFilter.Value == 2))
+        if (roleFilter.HasValue && roleFilter.Value >= 0)
         {
             filters.Add($"accountRole eq {roleFilter.Value}");
         }

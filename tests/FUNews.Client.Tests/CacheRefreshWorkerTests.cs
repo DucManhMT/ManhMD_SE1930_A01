@@ -55,6 +55,7 @@ public class CacheRefreshWorkerTests
 
         public Task<LoginResponseApiModel> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<AuditLogPagedResponseApiModel> GetAuditLogsAsync(int? userId = null, string? entityType = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<CategoryApiModel?> GetCategoryByIdAsync(short id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<CategoryApiModel> CreateCategoryAsync(CreateCategoryApiModel request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<CategoryApiModel> UpdateCategoryAsync(short id, UpdateCategoryApiModel request, CancellationToken cancellationToken = default) => throw new NotImplementedException();

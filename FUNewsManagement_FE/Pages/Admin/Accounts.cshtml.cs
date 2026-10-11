@@ -317,10 +317,14 @@ public class AccountsModel : PageModel
         {
             _logger.LogWarning(ex, "API error while deleting account #{Id}: {Message}", id, ex.Message);
 
+            var friendlyMsg = !string.IsNullOrWhiteSpace(ex.Message)
+                ? ex.Message
+                : "Không thể xóa tài khoản này vì đã có bài viết liên kết trong hệ thống!";
+
             return new JsonResult(new
             {
                 success = false,
-                message = ex.Message ?? "Không thể xóa tài khoản."
+                message = friendlyMsg
             });
         }
         catch (Exception ex)

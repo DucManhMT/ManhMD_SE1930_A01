@@ -55,6 +55,7 @@
                     <label for="selectRoleFilter" class="form-label small fw-semibold text-muted mb-1">Lọc vai trò</label>
                     <select id="selectRoleFilter" name="roleFilter" class="form-select">
                         <option value="">-- Tất cả vai trò --</option>
+                        <option value="0" selected="@(Model.RoleFilter == 0)">Quản trị viên (Admin)</option>
                         <option value="1" selected="@(Model.RoleFilter == 1)">Nhân viên (Staff)</option>
                         <option value="2" selected="@(Model.RoleFilter == 2)">Giảng viên (Lecturer)</option>
                     </select>

@@ -1,0 +1,274 @@
+@page
+@model ManhMD_SE1930_A01_FE.Pages.Admin.AuditLogsModel
+@{
+    ViewData["Title"] = "Nhật Ký Thay Đổi Dữ Liệu (Audit Log)";
+}
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-1">
+                <i class="bi bi-journal-text me-2 text-primary"></i>Nhật Ký Thay Đổi Dữ Liệu (Audit Log)
+            </h2>
+            <p class="text-muted mb-0">Theo dõi toàn diện mọi thao tác Thêm, Sửa, Xóa trên hệ thống FUNews.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Quay lại Dashboard
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Người thực hiện:</label>
+                    <select name="userId" class="form-select">
+                        <option value="">-- Tất cả người dùng --</option>
+                        @foreach (var acc in Model.AccountsList)
+                        {
+                            if (Model.UserId.HasValue && Model.UserId.Value == acc.AccountId)
+                            {
+                                <option value="@acc.AccountId" selected>@acc.AccountName (@acc.AccountEmail)</option>
+                            }
+                            else
+                            {
+                                <option value="@acc.AccountId">@acc.AccountName (@acc.AccountEmail)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Loại đối tượng (Entity):</label>
+                    <select name="entityType" class="form-select">
+                        <option value="">-- Tất cả đối tượng --</option>
+                        <option value="NewsArticle" selected="@(Model.EntityType == "NewsArticle")">Bài viết (NewsArticle)</option>
+                        <option value="Category" selected="@(Model.EntityType == "Category")">Chuyên mục (Category)</option>
+                        <option value="Tag" selected="@(Model.EntityType == "Tag")">Thẻ tin (Tag)</option>
+                        <option value="SystemAccount" selected="@(Model.EntityType == "SystemAccount")">Tài khoản (SystemAccount)</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-funnel me-1"></i>Lọc nhật ký
+                    </button>
+                    <a href="/admin/auditlogs" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Audit Log Table Card -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-semibold">
+                Danh sách bản ghi (@Model.PagedResult.TotalCount bản ghi)
+            </h5>
+            <span class="badge bg-light text-dark border">Trang @Model.PagedResult.Page / @Math.Max(1, Model.PagedResult.TotalPages)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 70px;">Mã #</th>
+                        <th style="width: 170px;">Thời gian</th>
+                        <th style="width: 180px;">Người thực hiện</th>
+                        <th style="width: 120px;">Hành động</th>
+                        <th style="width: 150px;">Đối tượng</th>
+                        <th style="width: 120px;">Khóa ID</th>
+                        <th class="text-center" style="width: 130px;">Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.PagedResult.Items == null || Model.PagedResult.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                Không tìm thấy bản ghi nhật ký nào phù hợp.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.PagedResult.Items)
+                        {
+                            <tr>
+                                <td class="fw-semibold">#@item.AuditId</td>
+                                <td class="small text-muted">@item.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td>
+                                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(item.UserName) ? "Hệ thống" : item.UserName)</div>
+                                    @if (item.UserId.HasValue)
+                                    {
+                                        <div class="text-muted small">ID: @item.UserId.Value</div>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (item.Action?.ToUpperInvariant())
+                                    {
+                                        case "CREATE":
+                                            <span class="badge bg-success"><i class="bi bi-plus-circle me-1"></i>CREATE</span>
+                                            break;
+                                        case "UPDATE":
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-pencil me-1"></i>UPDATE</span>
+                                            break;
+                                        case "DELETE":
+                                            <span class="badge bg-danger"><i class="bi bi-trash me-1"></i>DELETE</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-secondary">@item.Action</span>
+                                            break;
+                                    }
+                                </td>
+                                <td><span class="badge bg-light text-dark border">@item.Entity</span></td>
+                                <td class="font-monospace small">@item.EntityId</td>
+                                <td class="text-center">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary btn-view-audit-detail" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalAuditDetail"
+                                            data-audit-id="@item.AuditId"
+                                            data-action="@item.Action"
+                                            data-entity="@item.Entity"
+                                            data-entity-id="@item.EntityId"
+                                            data-user="@item.UserName"
+                                            data-time="@item.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")"
+                                            data-before="@(item.BeforeJson ?? "null")"
+                                            data-after="@(item.AfterJson ?? "null")">
+                                        <i class="bi bi-eye me-1"></i>Xem JSON
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.PagedResult.TotalPages > 1)
+        {
+            <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    Hiển thị @(Model.PagedResult.Items?.Count ?? 0) trong tổng số @Model.PagedResult.TotalCount bản ghi
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.PageIndex <= 1 ? "disabled" : "")">
+                            <a class="page-link" href="/admin/auditlogs?pageIndex=@(Model.PageIndex - 1)&userId=@Model.UserId&entityType=@Model.EntityType">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int p = 1; p <= Model.PagedResult.TotalPages; p++)
+                        {
+                            <li class="page-item @(p == Model.PageIndex ? "active" : "")">
+                                <a class="page-link" href="/admin/auditlogs?pageIndex=@p&userId=@Model.UserId&entityType=@Model.EntityType">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PageIndex >= Model.PagedResult.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="/admin/auditlogs?pageIndex=@(Model.PageIndex + 1)&userId=@Model.UserId&entityType=@Model.EntityType">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Chi Tiết Before/After JSON -->
+<div class="modal fade" id="modalAuditDetail" tabindex="-1" aria-labelledby="modalAuditDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div>
+                    <h5 class="modal-title fw-bold" id="modalAuditDetailTitle">
+                        <i class="bi bi-file-earmark-diff me-2 text-primary"></i>Chi Tiết Thay Đổi #<span id="auditDetailId"></span>
+                    </h5>
+                    <div class="small text-muted mt-1" id="auditDetailMeta"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100 border-danger border-opacity-25 shadow-sm">
+                            <div class="card-header bg-danger bg-opacity-10 text-danger fw-bold d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-arrow-counterclockwise me-1"></i>Dữ liệu trước (Before JSON)</span>
+                                <span class="badge bg-danger">Cũ</span>
+                            </div>
+                            <div class="card-body p-2 bg-dark rounded-bottom">
+                                <pre class="m-0 text-light small" style="max-height: 400px; overflow-y: auto;"><code id="auditBeforeJson"></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-success border-opacity-25 shadow-sm">
+                            <div class="card-header bg-success bg-opacity-10 text-success fw-bold d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-check-circle me-1"></i>Dữ liệu sau (After JSON)</span>
+                                <span class="badge bg-success">Mới</span>
+                            </div>
+                            <div class="card-body p-2 bg-dark rounded-bottom">
+                                <pre class="m-0 text-light small" style="max-height: 400px; overflow-y: auto;"><code id="auditAfterJson"></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var modal = document.getElementById('modalAuditDetail');
+        if (!modal) return;
+
+        modal.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            if (!btn) return;
+
+            var auditId = btn.getAttribute('data-audit-id');
+            var action = btn.getAttribute('data-action');
+            var entity = btn.getAttribute('data-entity');
+            var entityId = btn.getAttribute('data-entity-id');
+            var user = btn.getAttribute('data-user') || 'Hệ thống';
+            var time = btn.getAttribute('data-time');
+            var before = btn.getAttribute('data-before');
+            var after = btn.getAttribute('data-after');
+
+            document.getElementById('auditDetailId').textContent = auditId;
+            document.getElementById('auditDetailMeta').textContent = 
+                'Hành động: ' + action + ' | Đối tượng: ' + entity + ' (ID: ' + entityId + ') | Thực hiện bởi: ' + user + ' lúc ' + time;
+
+            function formatJson(raw) {
+                if (!raw || raw === 'null') return '(Không có dữ liệu)';
+                try {
+                    var parsed = JSON.parse(raw);
+                    return JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    return raw;
+                }
+            }
+
+            document.getElementById('auditBeforeJson').textContent = formatJson(before);
+            document.getElementById('auditAfterJson').textContent = formatJson(after);
+        });
+    });
+</script>
+}
