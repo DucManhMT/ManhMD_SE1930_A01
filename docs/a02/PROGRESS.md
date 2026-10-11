@@ -17,7 +17,7 @@
 | **A02-013** | FE: Chế độ hoạt động ngoại tuyến (Offline Mode) | `DONE` | AI Agent | 2026-10-11 | Banner Offline, tự động đọc cache snapshot, khóa cứng CRUD, 3 tests pass |
 | **A02-014** | FE & Core: Màn hình Admin Audit Log & Account | `DONE` | AI Agent | 2026-10-11 | UI xem Before/After JSON, lọc Role Admin, chặn xóa Account có bài viết, 4 tests pass |
 | **A02-015** | SignalR: Thông báo thời gian thực khi có bài mới | `DONE` | AI Agent | 2026-10-11 | Hub `/hubs/notifications`, Toast và chuông 🔔, 10 tin gần nhất, 3 tests pass |
-| **A02-016** | Hoàn thiện UI/UX toàn hệ thống | `TODO` | AI Agent | — | Modals, Loading spinner, Alert, Accessibility |
+| **A02-016** | Hoàn thiện UI/UX toàn hệ thống | `DONE` | AI Agent | 2026-10-11 | Modals, Loading spinner, Alert, Accessibility, 7 tests pass |
 | **A02-017** | Đóng gói bộ nộp bài và tài liệu hướng dẫn | `TODO` | AI Agent | — | 4 .sln, file SQL, README.md, Screenshots |
 
 ---

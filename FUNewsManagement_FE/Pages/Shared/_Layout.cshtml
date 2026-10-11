@@ -16,6 +16,7 @@
             <i class="bi bi-wifi-off me-2"></i>⚠️ HỆ THỐNG ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (OFFLINE MODE) — DỮ LIỆU ĐƯỢC TẢI TỪ BỘ NHỚ ĐỆM. CÁC TÍNH NĂNG THÊM, SỬA, XÓA TẠM THỜI BỊ KHÓA!
         </div>
     }
+    <a href="#mainContent" class="skip-to-content">Bỏ qua đến nội dung chính</a>
     <header>
         <nav class="navbar navbar-expand-lg navbar-fu">
             <div class="container fu-container-public">
@@ -174,7 +175,7 @@
         var isFluid = ViewData["UseFluidContainer"] as bool? == true;
     }
     <div class="@(isFluid ? "container-fluid px-3 px-lg-4" : "container fu-container-public") flex-grow-1 my-3">
-        <main role="main" class="pb-3">
+        <main role="main" class="pb-3" id="mainContent">
             @RenderBody()
         </main>
     </div>
@@ -244,7 +245,22 @@
     }
 
     <!-- Toast container cho thông báo toàn hệ thống có aria-live -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="fuToastContainer" aria-live="polite" aria-atomic="true"></div>
+    @{
+        var flashSuccess = TempData["SuccessMessage"]?.ToString();
+        var flashError = TempData["ErrorMessage"]?.ToString();
+    }
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="fuToastContainer" aria-live="polite" aria-atomic="true"
+         data-server-success="@flashSuccess" data-server-error="@flashError"></div>
+
+    <!-- Global Loading Overlay -->
+    <div id="globalLoading" class="fu-loading-overlay d-none" role="status" aria-live="polite" aria-label="Đang xử lý">
+        <div class="fu-loading-box">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <div class="fu-loading-text fw-semibold text-dark">Đang xử lý, vui lòng chờ...</div>
+        </div>
+    </div>
 
     <footer class="footer-fu">
         <div class="container fu-container-public text-center">
