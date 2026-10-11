@@ -10,14 +10,30 @@ public class ClientAuthenticationTests
 {
     private class TestTokenProvider : ITokenProvider
     {
-        private readonly string? _token;
+        private string? _token;
+        private string? _refreshToken;
 
-        public TestTokenProvider(string? token)
+        public TestTokenProvider(string? token, string? refreshToken = null)
         {
             _token = token;
+            _refreshToken = refreshToken;
         }
 
         public string? GetToken() => _token;
+
+        public string? GetRefreshToken() => _refreshToken;
+
+        public void SaveTokens(string accessToken, string refreshToken, DateTime? expiresAt = null)
+        {
+            _token = accessToken;
+            _refreshToken = refreshToken;
+        }
+
+        public void ClearTokens()
+        {
+            _token = null;
+            _refreshToken = null;
+        }
     }
 
     private class MockHttpMessageHandler : HttpMessageHandler

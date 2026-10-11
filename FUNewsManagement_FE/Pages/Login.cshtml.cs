@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using FUNews.Client.BusinessLogic.Services;
+using FUNews.Client.DataAccess.Clients;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.Client.DataAccess.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -14,10 +15,12 @@ namespace ManhMD_SE1930_A01_FE.Pages;
 public class LoginModel : PageModel
 {
     private readonly IAuthClientService _authClientService;
+    private readonly ITokenProvider? _tokenProvider;
 
-    public LoginModel(IAuthClientService authClientService)
+    public LoginModel(IAuthClientService authClientService, ITokenProvider? tokenProvider = null)
     {
         _authClientService = authClientService ?? throw new ArgumentNullException(nameof(authClientService));
+        _tokenProvider = tokenProvider;
     }
 
     [BindProperty]
@@ -94,15 +97,20 @@ public class LoginModel : PageModel
                 ExpiresUtc = response.ExpiresAt
             };
 
+            var tokenValue = !string.IsNullOrEmpty(response.AccessToken) ? response.AccessToken : response.Token;
+            var refreshTokenValue = response.RefreshToken ?? string.Empty;
+
             authProperties.StoreTokens(new[]
             {
-                new AuthenticationToken { Name = "access_token", Value = response.Token }
+                new AuthenticationToken { Name = "access_token", Value = tokenValue },
+                new AuthenticationToken { Name = "refresh_token", Value = refreshTokenValue }
             });
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
             // Lưu thông tin phiên làm việc phía server
-            HttpContext.Session.SetString("jwt_token", response.Token);
+            _tokenProvider?.SaveTokens(tokenValue, refreshTokenValue, response.ExpiresAt);
+            HttpContext.Session.SetString("jwt_token", tokenValue);
             HttpContext.Session.SetString("user_role", response.User.RoleName);
             HttpContext.Session.SetString("user_name", response.User.AccountName);
 
@@ -169,14 +177,19 @@ public class LoginModel : PageModel
                 ExpiresUtc = response.ExpiresAt
             };
 
+            var tokenValue = !string.IsNullOrEmpty(response.AccessToken) ? response.AccessToken : response.Token;
+            var refreshTokenValue = response.RefreshToken ?? string.Empty;
+
             authProperties.StoreTokens(new[]
             {
-                new AuthenticationToken { Name = "access_token", Value = response.Token }
+                new AuthenticationToken { Name = "access_token", Value = tokenValue },
+                new AuthenticationToken { Name = "refresh_token", Value = refreshTokenValue }
             });
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-            HttpContext.Session.SetString("jwt_token", response.Token);
+            _tokenProvider?.SaveTokens(tokenValue, refreshTokenValue, response.ExpiresAt);
+            HttpContext.Session.SetString("jwt_token", tokenValue);
             HttpContext.Session.SetString("user_role", response.User.RoleName);
             HttpContext.Session.SetString("user_name", response.User.AccountName);
 

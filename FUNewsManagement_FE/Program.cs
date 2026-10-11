@@ -15,9 +15,19 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITokenProvider, HttpContextTokenProvider>();
 
-// Register typed HTTP client and client business logic services
-var apiBaseUrl = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7001";
-builder.Services.AddFUNewsClientDataAccess(apiBaseUrl);
+// Register 3 typed HTTP clients and client business logic services
+var coreApiUrl = builder.Configuration["ApiEndpoints:CoreApi"]
+    ?? builder.Configuration["Api:CoreApi"]
+    ?? builder.Configuration["Api:BaseUrl"]
+    ?? "https://localhost:7001";
+var analyticsApiUrl = builder.Configuration["ApiEndpoints:AnalyticsApi"]
+    ?? builder.Configuration["Api:AnalyticsApi"]
+    ?? "https://localhost:7002";
+var aiApiUrl = builder.Configuration["ApiEndpoints:AiApi"]
+    ?? builder.Configuration["Api:AiApi"]
+    ?? "https://localhost:7003";
+
+builder.Services.AddFUNewsClientDataAccess(coreApiUrl, analyticsApiUrl, aiApiUrl);
 builder.Services.AddFUNewsClientBusinessLogic();
 
 // Session configuration
