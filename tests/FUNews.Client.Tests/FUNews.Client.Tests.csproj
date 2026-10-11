@@ -21,9 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_FE\ManhMD_SE1930_A01_FE.csproj" />
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_FE\FUNews.Client.BusinessLogic\FUNews.Client.BusinessLogic.csproj" />
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_FE\FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_FE\FUNewsManagement_FE.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_FE\FUNews.Client.BusinessLogic\FUNews.Client.BusinessLogic.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_FE\FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>

@@ -22,10 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_BE\ManhMD_SE1930_A01_BE.csproj" />
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_BE\FUNews.BusinessLogic\FUNews.BusinessLogic.csproj" />
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_BE\FUNews.DataAccess\FUNews.DataAccess.csproj" />
-    <ProjectReference Include="..\..\ManhMD_SE1930_A01_FE\FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_CoreAPI\FUNewsManagement_CoreAPI.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_CoreAPI\FUNews.BusinessLogic\FUNews.BusinessLogic.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_CoreAPI\FUNews.DataAccess\FUNews.DataAccess.csproj" />
+    <ProjectReference Include="..\..\FUNewsManagement_FE\FUNews.Client.DataAccess\FUNews.Client.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>
