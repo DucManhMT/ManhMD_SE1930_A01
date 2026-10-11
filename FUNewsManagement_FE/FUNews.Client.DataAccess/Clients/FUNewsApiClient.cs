@@ -1,36 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.Client.DataAccess.Models;
+using FUNews.Client.DataAccess.Services;
 
 namespace FUNews.Client.DataAccess.Clients;
 
 public class FUNewsApiClient : IFUNewsApiClient
 {
-    private readonly HttpClient _httpClient;
+    protected readonly HttpClient _httpClient;
+    protected readonly IOfflineStoreManager? _offlineStore;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public FUNewsApiClient(HttpClient httpClient)
+    public FUNewsApiClient(HttpClient httpClient, IOfflineStoreManager? offlineStore = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _offlineStore = offlineStore;
     }
 
-    public Task<ODataEnvelope<CategoryApiModel>> GetCategoriesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    private static bool IsNetworkOrServerFailure(Exception ex)
     {
-        var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/category" : $"api/category{FormatQuery(odataQuery)}";
-        return GetEnvelopeAsync<CategoryApiModel>(uri, cancellationToken);
+        if (ex is HttpRequestException || ex is TimeoutException) return true;
+        if (ex is FUNewsApiException apiEx)
+        {
+            var code = (int)apiEx.StatusCode;
+            return code == 503 || code == 502 || code == 504 || code == 500;
+        }
+        return false;
     }
 
-    public Task<CategoryApiModel?> GetCategoryByIdAsync(short id, CancellationToken cancellationToken = default)
+    private void EnsureNotOffline()
     {
-        return GetSingleAsync<CategoryApiModel>($"api/category/{id}", cancellationToken);
+        if (_offlineStore?.IsOffline == true)
+        {
+            throw new FUNewsApiException(System.Net.HttpStatusCode.ServiceUnavailable,
+                "Hệ thống đang hoạt động ở chế độ ngoại tuyến (Offline Mode). Các thao tác thêm, sửa, xóa tạm thời bị khóa.");
+        }
+    }
+
+    public async Task<ODataEnvelope<CategoryApiModel>> GetCategoriesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/category" : $"api/category{FormatQuery(odataQuery)}";
+            var result = await GetEnvelopeAsync<CategoryApiModel>(uri, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return new ODataEnvelope<CategoryApiModel>
+                {
+                    Count = snapshot.Categories.Count,
+                    Value = snapshot.Categories
+                };
+            }
+            throw;
+        }
+    }
+
+    public async Task<CategoryApiModel?> GetCategoryByIdAsync(short id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await GetSingleAsync<CategoryApiModel>($"api/category/{id}", cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return snapshot.Categories.FirstOrDefault(c => c.CategoryId == id);
+            }
+            throw;
+        }
     }
 
     public async Task<CategoryApiModel> CreateCategoryAsync(CreateCategoryApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PostAsJsonAsync("api/category", request, JsonOptions, cancellationToken);
@@ -45,6 +111,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<CategoryApiModel> UpdateCategoryAsync(short id, UpdateCategoryApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PutAsJsonAsync($"api/category/{id}", request, JsonOptions, cancellationToken);
@@ -59,6 +126,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task DeleteCategoryAsync(short id, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         using var response = await _httpClient.DeleteAsync($"api/category/{id}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -66,19 +134,54 @@ public class FUNewsApiClient : IFUNewsApiClient
         }
     }
 
-    public Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    public async Task<ODataEnvelope<TagApiModel>> GetTagsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
-        var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/tag" : $"api/tag{FormatQuery(odataQuery)}";
-        return GetEnvelopeAsync<TagApiModel>(uri, cancellationToken);
+        try
+        {
+            var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/tag" : $"api/tag{FormatQuery(odataQuery)}";
+            var result = await GetEnvelopeAsync<TagApiModel>(uri, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return new ODataEnvelope<TagApiModel>
+                {
+                    Count = snapshot.Tags.Count,
+                    Value = snapshot.Tags
+                };
+            }
+            throw;
+        }
     }
 
-    public Task<TagApiModel?> GetTagByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<TagApiModel?> GetTagByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return GetSingleAsync<TagApiModel>($"api/tag/{id}", cancellationToken);
+        try
+        {
+            var result = await GetSingleAsync<TagApiModel>($"api/tag/{id}", cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return snapshot.Tags.FirstOrDefault(t => t.TagId == id);
+            }
+            throw;
+        }
     }
 
     public async Task<TagApiModel> CreateTagAsync(CreateTagApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PostAsJsonAsync("api/tag", request, JsonOptions, cancellationToken);
@@ -93,6 +196,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<TagApiModel> UpdateTagAsync(int id, UpdateTagApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PutAsJsonAsync($"api/tag/{id}", request, JsonOptions, cancellationToken);
@@ -107,6 +211,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task DeleteTagAsync(int id, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         using var response = await _httpClient.DeleteAsync($"api/tag/{id}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -116,29 +221,78 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<List<NewsArticleApiModel>> GetNewsArticlesByTagAsync(int tagId, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync($"api/tag/{tagId}/news", cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            await HandleErrorResponseAsync(response, cancellationToken);
+            using var response = await _httpClient.GetAsync($"api/tag/{tagId}/news", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                await HandleErrorResponseAsync(response, cancellationToken);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result ?? new List<NewsArticleApiModel>();
         }
-
-        var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
-        return result ?? new List<NewsArticleApiModel>();
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return snapshot.Articles.Where(a => a.Tags != null && a.Tags.Any(t => t.TagId == tagId)).ToList();
+            }
+            throw;
+        }
     }
 
-    public Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    public async Task<ODataEnvelope<NewsArticleApiModel>> GetNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
-        var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news" : $"api/news{FormatQuery(odataQuery)}";
-        return GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
+        try
+        {
+            var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news" : $"api/news{FormatQuery(odataQuery)}";
+            var result = await GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return new ODataEnvelope<NewsArticleApiModel>
+                {
+                    Count = snapshot.Articles.Count,
+                    Value = snapshot.Articles
+                };
+            }
+            throw;
+        }
     }
 
-    public Task<NewsArticleApiModel?> GetNewsArticleByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<NewsArticleApiModel?> GetNewsArticleByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        return GetSingleAsync<NewsArticleApiModel>($"api/news/{id}", cancellationToken);
+        try
+        {
+            var result = await GetSingleAsync<NewsArticleApiModel>($"api/news/{id}", cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return snapshot.Articles.FirstOrDefault(a => string.Equals(a.NewsArticleId, id, StringComparison.OrdinalIgnoreCase));
+            }
+            throw;
+        }
     }
 
     public async Task<NewsArticleApiModel> CreateNewsArticleAsync(CreateNewsArticleApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PostAsJsonAsync("api/news", request, JsonOptions, cancellationToken);
@@ -153,6 +307,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<NewsArticleApiModel> UpdateNewsArticleAsync(string id, UpdateNewsArticleApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PutAsJsonAsync($"api/news/{id}", request, JsonOptions, cancellationToken);
@@ -167,6 +322,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task DeleteNewsArticleAsync(string id, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         using var response = await _httpClient.DeleteAsync($"api/news/{id}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -176,6 +332,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<NewsArticleApiModel> DuplicateNewsArticleAsync(string id, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         using var response = await _httpClient.PostAsync($"api/news/{Uri.EscapeDataString(id)}/duplicate", null, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -186,26 +343,64 @@ public class FUNewsApiClient : IFUNewsApiClient
         return duplicated ?? throw new InvalidOperationException("Máy chủ không trả về dữ liệu bài viết vừa nhân bản.");
     }
 
-    public Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
+    public async Task<ODataEnvelope<NewsArticleApiModel>> GetMyNewsArticlesAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
-        var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news/mine" : $"api/news/mine{FormatQuery(odataQuery)}";
-        return GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
+        try
+        {
+            var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/news/mine" : $"api/news/mine{FormatQuery(odataQuery)}";
+            var result = await GetEnvelopeAsync<NewsArticleApiModel>(uri, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result;
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                return new ODataEnvelope<NewsArticleApiModel>
+                {
+                    Count = snapshot.Articles.Count,
+                    Value = snapshot.Articles
+                };
+            }
+            throw;
+        }
     }
 
     public async Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync($"api/news/{Uri.EscapeDataString(id)}/related", cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            await HandleErrorResponseAsync(response, cancellationToken);
-        }
+            using var response = await _httpClient.GetAsync($"api/news/{Uri.EscapeDataString(id)}/related", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                await HandleErrorResponseAsync(response, cancellationToken);
+            }
 
-        var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
-        return result ?? new List<NewsArticleApiModel>();
+            var result = await response.Content.ReadFromJsonAsync<List<NewsArticleApiModel>>(JsonOptions, cancellationToken);
+            _offlineStore?.MarkApiSuccess();
+            return result ?? new List<NewsArticleApiModel>();
+        }
+        catch (Exception ex) when (IsNetworkOrServerFailure(ex))
+        {
+            _offlineStore?.MarkApiFailure();
+            var snapshot = _offlineStore?.GetCachedSnapshot() ?? await (_offlineStore?.GetSnapshotAsync(cancellationToken) ?? Task.FromResult<OfflineDataSnapshot?>(null));
+            if (snapshot != null)
+            {
+                var cur = snapshot.Articles.FirstOrDefault(a => string.Equals(a.NewsArticleId, id, StringComparison.OrdinalIgnoreCase));
+                if (cur != null)
+                {
+                    return snapshot.Articles.Where(a => a.NewsArticleId != id && (a.CategoryId == cur.CategoryId)).Take(3).ToList();
+                }
+            }
+            throw;
+        }
     }
 
     public async Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentException.ThrowIfNullOrWhiteSpace(articleId);
         ArgumentNullException.ThrowIfNull(fileStream);
 
@@ -237,6 +432,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<AccountApiModel> CreateAccountAsync(CreateAccountApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PostAsJsonAsync("api/account", request, JsonOptions, cancellationToken);
@@ -251,6 +447,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task<AccountApiModel> UpdateAccountAsync(short id, UpdateAccountApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
         using var response = await _httpClient.PutAsJsonAsync($"api/account/{id}", request, JsonOptions, cancellationToken);
@@ -265,6 +462,7 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task DeleteAccountAsync(short id, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         using var response = await _httpClient.DeleteAsync($"api/account/{id}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -272,17 +470,17 @@ public class FUNewsApiClient : IFUNewsApiClient
         }
     }
 
-    public async Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default)
+    public Task<AccountApiModel> GetProfileAsync(CancellationToken cancellationToken = default)
     {
-        var result = await GetSingleAsync<AccountApiModel>("api/account/me", cancellationToken);
-        return result ?? throw new FUNewsApiException(System.Net.HttpStatusCode.NotFound, "Không tìm thấy thông tin hồ sơ tài khoản.");
+        return GetSingleAsync<AccountApiModel>("api/account/profile", cancellationToken)!;
     }
 
     public async Task<AccountApiModel> UpdateProfileAsync(UpdateProfileApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
-        using var response = await _httpClient.PutAsJsonAsync("api/account/me", request, JsonOptions, cancellationToken);
+        using var response = await _httpClient.PutAsJsonAsync("api/account/profile", request, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response, cancellationToken);
@@ -294,9 +492,10 @@ public class FUNewsApiClient : IFUNewsApiClient
 
     public async Task ChangePasswordAsync(ChangePasswordApiModel request, CancellationToken cancellationToken = default)
     {
+        EnsureNotOffline();
         ArgumentNullException.ThrowIfNull(request);
 
-        using var response = await _httpClient.PostAsJsonAsync("api/account/me/change-password", request, JsonOptions, cancellationToken);
+        using var response = await _httpClient.PutAsJsonAsync("api/account/password", request, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response, cancellationToken);

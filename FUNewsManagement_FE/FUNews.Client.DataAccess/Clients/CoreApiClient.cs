@@ -3,19 +3,19 @@ using System.Text.Json;
 using FUNews.Client.DataAccess.Exceptions;
 using FUNews.Client.DataAccess.Models;
 
+using FUNews.Client.DataAccess.Services;
+
 namespace FUNews.Client.DataAccess.Clients;
 
 public class CoreApiClient : FUNewsApiClient, ICoreApiClient
 {
-    private readonly HttpClient _httpClient;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public CoreApiClient(HttpClient httpClient) : base(httpClient)
+    public CoreApiClient(HttpClient httpClient, IOfflineStoreManager? offlineStore = null) : base(httpClient, offlineStore)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public async Task<LoginResponseApiModel> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)

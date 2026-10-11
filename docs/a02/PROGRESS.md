@@ -14,7 +14,7 @@
 | **A02-010** | AI API: Tag Suggestions & Learning Cache | `DONE` | AI Agent | 2026-10-11 | Keyword engine, confidence score, Learning Cache weight boost, 7 tests pass |
 | **A02-011** | FE: AI Tag Badges/Chips & Feedback Loop | `DONE` | AI Agent | 2026-10-11 | Badges/Chips chọn nhanh tag trên modal, Feedback loop AI, 5 tests pass |
 | **A02-012** | FE: Background Worker HostedService 6h | `DONE` | AI Agent | 2026-10-11 | Worker nạp cache định kỳ 6h, OfflineStoreManager JSON, 3 tests pass |
-| **A02-013** | FE: Chế độ hoạt động ngoại tuyến (Offline Mode) | `TODO` | AI Agent | — | Banner Offline, đọc cache và khóa CRUD |
+| **A02-013** | FE: Chế độ hoạt động ngoại tuyến (Offline Mode) | `DONE` | AI Agent | 2026-10-11 | Banner Offline, tự động đọc cache snapshot, khóa cứng CRUD, 3 tests pass |
 | **A02-014** | FE & Core: Màn hình Admin Audit Log & Account | `TODO` | AI Agent | — | UI xem lịch sử thay đổi và quản lý tài khoản |
 | **A02-015** | SignalR: Thông báo thời gian thực khi có bài mới | `TODO` | AI Agent | — | Hub `/hubs/notifications`, Toast và chuông 🔔 |
 | **A02-016** | Hoàn thiện UI/UX toàn hệ thống | `TODO` | AI Agent | — | Modals, Loading spinner, Alert, Accessibility |

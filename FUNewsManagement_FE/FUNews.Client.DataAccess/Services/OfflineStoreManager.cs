@@ -24,9 +24,9 @@ public class OfflineStoreManager : IOfflineStoreManager
 
     public string SnapshotFilePath => _snapshotFilePath;
 
-    public OfflineStoreManager(IConfiguration? configuration, ILogger<OfflineStoreManager> logger)
+    public OfflineStoreManager(IConfiguration? configuration = null, ILogger<OfflineStoreManager>? logger = null)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<OfflineStoreManager>.Instance;
 
         var configuredPath = configuration?["OfflineStore:SnapshotPath"];
         if (!string.IsNullOrWhiteSpace(configuredPath))
@@ -42,10 +42,10 @@ public class OfflineStoreManager : IOfflineStoreManager
     }
 
     // Constructor phục vụ testing linh hoạt
-    public OfflineStoreManager(string snapshotFilePath, ILogger<OfflineStoreManager> logger)
+    public OfflineStoreManager(string snapshotFilePath, ILogger<OfflineStoreManager>? logger = null)
     {
         _snapshotFilePath = snapshotFilePath ?? throw new ArgumentNullException(nameof(snapshotFilePath));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<OfflineStoreManager>.Instance;
     }
 
     public async Task SaveSnapshotAsync(OfflineDataSnapshot snapshot, CancellationToken cancellationToken = default)
@@ -129,5 +129,31 @@ public class OfflineStoreManager : IOfflineStoreManager
     public bool HasSnapshot()
     {
         return _memoryCache != null || File.Exists(_snapshotFilePath);
+    }
+
+    private volatile bool _isOffline;
+
+    public bool IsOffline
+    {
+        get => _isOffline;
+        set => _isOffline = value;
+    }
+
+    public void MarkApiFailure()
+    {
+        if (!_isOffline)
+        {
+            _isOffline = true;
+            _logger.LogWarning("System marked as OFFLINE due to API connectivity failure.");
+        }
+    }
+
+    public void MarkApiSuccess()
+    {
+        if (_isOffline)
+        {
+            _isOffline = false;
+            _logger.LogInformation("System marked as ONLINE. API connectivity restored.");
+        }
     }
 }

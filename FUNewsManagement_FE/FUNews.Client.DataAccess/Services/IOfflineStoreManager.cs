@@ -11,4 +11,7 @@ public interface IOfflineStoreManager
     OfflineDataSnapshot? GetCachedSnapshot();
     bool HasSnapshot();
     string SnapshotFilePath { get; }
+    bool IsOffline { get; set; }
+    void MarkApiFailure();
+    void MarkApiSuccess();
 }
