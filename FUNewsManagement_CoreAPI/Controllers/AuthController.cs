@@ -29,4 +29,30 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginAsync(request, cancellationToken);
         return Ok(response);
     }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> Refresh([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var response = await _authService.RefreshTokenAsync(request.RefreshToken, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        await _authService.LogoutAsync(request.RefreshToken, cancellationToken);
+        return Ok(new { message = "Đăng xuất thành công." });
+    }
 }

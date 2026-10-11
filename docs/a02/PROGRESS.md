@@ -4,7 +4,7 @@
 |:---:|:---|:---:|:---:|:---:|:---|
 | **A02-001** | Baseline và đồng bộ tài liệu từ A01 | `DONE` | AI Agent | 2026-10-11 | Build 2 solutions 0 error, 100 client tests passed, tạo báo cáo hiện trạng |
 | **A02-002** | Khởi tạo cấu trúc 4 Solutions độc lập | `DONE` | AI Agent | 2026-10-11 | Chuẩn hóa 4 .sln theo Option B, phân port 7000-7003, build thành công 0 error |
-| **A02-003** | Core API: JWT Refresh Token Flow | `TODO` | AI Agent | — | Endpoint `/api/auth/refresh` và bảng RefreshToken |
+| **A02-003** | Core API: JWT Refresh Token Flow | `DONE` | AI Agent | 2026-10-11 | Endpoint /api/auth/refresh, Token Rotation, bảng RefreshToken, 3/3 tests pass |
 | **A02-004** | FE: HttpClients, DelegatingHandler & Polly | `TODO` | AI Agent | — | 3 Typed HttpClients và Retry Policy |
 | **A02-005** | Database: Migration Schema bổ sung A02 | `TODO` | AI Agent | — | Chạy script SQL mở rộng |
 | **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `TODO` | AI Agent | — | Tự động ghi Before/After JSON và chặn xóa dữ liệu |

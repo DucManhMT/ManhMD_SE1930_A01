@@ -15,6 +15,7 @@ public class FUNewsDbContext : DbContext
     public virtual DbSet<NewsTag> NewsTags { get; set; } = null!;
     public virtual DbSet<SystemAccount> SystemAccounts { get; set; } = null!;
     public virtual DbSet<Tag> Tags { get; set; } = null!;
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -172,6 +173,20 @@ public class FUNewsDbContext : DbContext
                 .HasForeignKey(d => d.TagID)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("FK_NewsTag_Tag");
+        });
+
+        // RefreshToken
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshToken");
+            entity.HasKey(e => e.TokenID).HasName("PK_RefreshToken");
+            entity.Property(e => e.Token).HasMaxLength(512).IsRequired();
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasOne(d => d.Account)
+                .WithMany()
+                .HasForeignKey(d => d.AccountID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
         });
     }
 }
