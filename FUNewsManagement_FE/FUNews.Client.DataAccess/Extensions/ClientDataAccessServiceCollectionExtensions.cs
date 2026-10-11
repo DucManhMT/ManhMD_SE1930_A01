@@ -1,6 +1,7 @@
 using FUNews.Client.DataAccess.Clients;
 using FUNews.Client.DataAccess.Handlers;
 using FUNews.Client.DataAccess.Policies;
+using FUNews.Client.DataAccess.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FUNews.Client.DataAccess.Extensions;
@@ -66,6 +67,10 @@ public static class ClientDataAccessServiceCollectionExtensions
         })
         .AddHttpMessageHandler<AuthTokenDelegatingHandler>()
         .AddPolicyHandler((_, req) => PollyPolicies.GetSelectableRetryPolicy(req));
+
+        // 4. Offline Store & Background Worker (6h HostedService)
+        services.AddSingleton<IOfflineStoreManager, OfflineStoreManager>();
+        services.AddHostedService<CacheRefreshWorker>();
 
         return services;
     }
