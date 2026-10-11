@@ -18,7 +18,7 @@
 | **A02-014** | FE & Core: Màn hình Admin Audit Log & Account | `DONE` | AI Agent | 2026-10-11 | UI xem Before/After JSON, lọc Role Admin, chặn xóa Account có bài viết, 4 tests pass |
 | **A02-015** | SignalR: Thông báo thời gian thực khi có bài mới | `DONE` | AI Agent | 2026-10-11 | Hub `/hubs/notifications`, Toast và chuông 🔔, 10 tin gần nhất, 3 tests pass |
 | **A02-016** | Hoàn thiện UI/UX toàn hệ thống | `DONE` | AI Agent | 2026-10-11 | Modals, Loading spinner, Alert, Accessibility, 7 tests pass |
-| **A02-017** | Đóng gói bộ nộp bài và tài liệu hướng dẫn | `TODO` | AI Agent | — | 4 .sln, file SQL, README.md, Screenshots |
+| **A02-017** | Đóng gói bộ nộp bài và tài liệu hướng dẫn | `DONE` | AI Agent | 2026-10-11 | 4 .sln 0 error, FUNewsManagement.sql, README.md, Screenshots 7/7, 289/289 tests pass |
 
 ---
 
