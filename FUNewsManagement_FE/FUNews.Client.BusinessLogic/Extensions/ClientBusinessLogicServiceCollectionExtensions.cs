@@ -13,6 +13,7 @@ public static class ClientBusinessLogicServiceCollectionExtensions
         services.AddScoped<ITagClientService, TagClientService>();
         services.AddScoped<IAccountClientService, AccountClientService>();
         services.AddScoped<IReportClientService, ReportClientService>();
+        services.AddScoped<IAnalyticsClientService, AnalyticsClientService>();
 
         return services;
     }

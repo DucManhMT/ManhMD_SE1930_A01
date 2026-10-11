@@ -1,0 +1,328 @@
+@page "/admin/dashboard"
+@model ManhMD_SE1930_A01_FE.Pages.Admin.DashboardModel
+@{
+    ViewData["Title"] = "Bảng điều khiển Thống kê (Dashboard)";
+}
+
+<div class="container-fluid px-lg-4 py-3 fu-container-public">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 pb-2 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="/admin/accounts" class="text-decoration-none">Quản trị</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-dark mb-0">
+                <i class="bi bi-speedometer2 text-primary me-2"></i>Bảng điều khiển Thống kê (Dashboard)
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                Giám sát số liệu phân tích tin tức thời gian thực, bài viết thịnh hành và xuất báo cáo nghiệp vụ.
+            </p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold">
+                <i class="bi bi-shield-lock me-1"></i>Quản trị viên (Admin)
+            </span>
+            <a href="/admin/reports" class="btn btn-outline-secondary btn-sm" title="Báo cáo danh sách chi tiết">
+                <i class="bi bi-table me-1"></i>Báo cáo lịch sử
+            </a>
+        </div>
+    </div>
+
+    <!-- Thông báo lỗi (nếu có) -->
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage) || TempData["ErrorMessage"] != null)
+    {
+        var msg = !string.IsNullOrWhiteSpace(Model.ErrorMessage) ? Model.ErrorMessage : TempData["ErrorMessage"]?.ToString();
+        <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0"></i>
+            <div>@msg</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Thanh bộ lọc (Filter Toolbar) -->
+    <div class="card card-fu shadow-sm mb-4">
+        <div class="card-header bg-light py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+            <span class="fw-semibold text-secondary small">
+                <i class="bi bi-funnel me-1"></i>Bộ lọc số liệu thống kê
+            </span>
+            <span class="small text-muted" id="filterStatusIndicator">
+                <i class="bi bi-check-circle-fill text-success me-1"></i>Sẵn sàng
+            </span>
+        </div>
+        <div class="card-body p-3">
+            <form method="get" id="formDashboardFilter" class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                    <label for="inputStartDate" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-calendar-event me-1"></i>Từ ngày
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="inputStartDate" name="startDate"
+                           value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                    <label for="inputEndDate" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-calendar-check me-1"></i>Đến ngày
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="inputEndDate" name="endDate"
+                           value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
+                    <label for="selectCategory" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-folder me-1"></i>Chuyên mục
+                    </label>
+                    <select class="form-select form-select-sm" id="selectCategory" name="categoryId">
+                        <option value="">-- Tất cả chuyên mục --</option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.CategoryId" selected="@(Model.CategoryId == cat.CategoryId)">
+                                @cat.CategoryName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                    <label for="selectStatus" class="form-label small fw-semibold text-secondary mb-1">
+                        <i class="bi bi-toggle-on me-1"></i>Trạng thái
+                    </label>
+                    <select class="form-select form-select-sm" id="selectStatus" name="status">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="true" selected="@(Model.Status == true)">Kích hoạt (Active)</option>
+                        <option value="false" selected="@(Model.Status == false)">Vô hiệu (Inactive)</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-lg-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold shadow-sm" id="btnApplyFilter">
+                        <i class="bi bi-search me-1"></i>Áp dụng lọc
+                    </button>
+                    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm" title="Xóa bộ lọc" id="btnResetFilter">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                    <a asp-page-handler="ExportExcel"
+                       asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
+                       asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))"
+                       asp-route-categoryId="@Model.CategoryId"
+                       class="btn btn-success btn-sm flex-fill fw-semibold shadow-sm text-nowrap" id="btnExportExcel"
+                       title="Xuất báo cáo định dạng Excel (.xlsx)">
+                        <i class="bi bi-file-earmark-excel-fill me-1"></i>Xuất Excel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4 Thẻ KPI Tóm Tắt (Summary Cards) -->
+    <div class="row g-3 mb-4">
+        <!-- Tổng số bài viết -->
+        <div class="col-6 col-md-3">
+            <div class="card card-fu shadow-sm h-100 border-start border-primary border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Tổng bài viết</span>
+                            <h2 class="h3 fw-bold text-dark mb-0 mt-1" id="kpiTotalArticles">
+                                @(Model.Dashboard?.TotalArticles ?? 0)
+                            </h2>
+                        </div>
+                        <div class="rounded-circle bg-primary-subtle p-3 text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <i class="bi bi-newspaper fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bài viết Active -->
+        <div class="col-6 col-md-3">
+            <div class="card card-fu shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Đang kích hoạt</span>
+                            <h2 class="h3 fw-bold text-success mb-0 mt-1" id="kpiActiveArticles">
+                                @(Model.Dashboard?.ActiveArticles ?? 0)
+                            </h2>
+                        </div>
+                        <div class="rounded-circle bg-success-subtle p-3 text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <i class="bi bi-check-circle-fill fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bài viết Inactive -->
+        <div class="col-6 col-md-3">
+            <div class="card card-fu shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Bản nháp / Vô hiệu</span>
+                            <h2 class="h3 fw-bold text-warning mb-0 mt-1" id="kpiInactiveArticles">
+                                @(Model.Dashboard?.InactiveArticles ?? 0)
+                            </h2>
+                        </div>
+                        <div class="rounded-circle bg-warning-subtle p-3 text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <i class="bi bi-pause-circle-fill fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tổng lượt đọc -->
+        <div class="col-6 col-md-3">
+            <div class="card card-fu shadow-sm h-100 border-start border-info border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Tổng lượt đọc</span>
+                            <h2 class="h3 fw-bold text-info mb-0 mt-1" id="kpiTotalViews">
+                                @Model.TotalViews
+                            </h2>
+                        </div>
+                        <div class="rounded-circle bg-info-subtle p-3 text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <i class="bi bi-eye-fill fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Đồ Thị Chart.js -->
+    <div class="row g-4 mb-4">
+        <!-- Pie Chart: Phân bố theo Chuyên mục -->
+        <div class="col-12 col-lg-6">
+            <div class="card card-fu shadow-sm h-100">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-pie-chart-fill text-primary me-2"></i>Phân bố bài viết theo Chuyên mục
+                    </span>
+                    <span class="badge bg-light text-secondary border">Pie Chart</span>
+                </div>
+                <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 320px;">
+                    <div class="w-100" style="max-height: 280px; position: relative;">
+                        <canvas id="categoryPieChart"></canvas>
+                    </div>
+                    <div id="noCategoryData" class="text-muted small mt-2 d-none">
+                        <i class="bi bi-info-circle me-1"></i>Không có dữ liệu bài viết theo chuyên mục.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar Chart: Phân bố theo Chu kỳ thời gian -->
+        <div class="col-12 col-lg-6">
+            <div class="card card-fu shadow-sm h-100">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-bar-chart-fill text-success me-2"></i>Số lượng bài viết theo Chu kỳ thời gian
+                    </span>
+                    <span class="badge bg-light text-secondary border">Bar Chart</span>
+                </div>
+                <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 320px;">
+                    <div class="w-100" style="max-height: 280px; position: relative;">
+                        <canvas id="periodBarChart"></canvas>
+                    </div>
+                    <div id="noPeriodData" class="text-muted small mt-2 d-none">
+                        <i class="bi bi-info-circle me-1"></i>Không có dữ liệu bài viết theo thời gian.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng Top 10 Bài Viết Thịnh Hành (Trending Articles) -->
+    <div class="card card-fu shadow-sm mb-4">
+        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark">
+                <i class="bi bi-fire text-danger me-2"></i>Top 10 Bài Viết Thịnh Hành Nhất (Trending)
+            </span>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="bi bi-graph-up me-1"></i>Lượt xem cao nhất
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tableTrendingArticles">
+                    <thead class="table-light small text-secondary">
+                        <tr>
+                            <th class="ps-3" style="width: 60px;">#</th>
+                            <th style="width: 130px;">Mã bài viết</th>
+                            <th>Tiêu đề bài viết</th>
+                            <th style="width: 180px;">Chuyên mục</th>
+                            <th style="width: 160px;">Ngày tạo</th>
+                            <th class="text-end pe-3" style="width: 140px;">Lượt xem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trendingTableBody">
+                        @if (Model.TrendingArticles.Count > 0)
+                        {
+                            int index = 1;
+                            foreach (var item in Model.TrendingArticles)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-bold @(index <= 3 ? "text-danger" : "text-muted")">
+                                        @if (index == 1) { <i class="bi bi-trophy-fill text-warning me-1"></i> }
+                                        @index
+                                    </td>
+                                    <td><code class="text-primary">@item.NewsArticleId</code></td>
+                                    <td>
+                                        <a href="/news/@item.NewsArticleId" class="text-decoration-none text-dark fw-semibold" target="_blank" title="Xem chi tiết bài viết">
+                                            @item.NewsTitle
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @(string.IsNullOrWhiteSpace(item.CategoryName) ? "Chưa phân loại" : item.CategoryName)
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted">
+                                        @(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "-")
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <span class="badge bg-danger px-2 py-1 fw-bold">
+                                            <i class="bi bi-eye me-1"></i>@item.ViewCount
+                                        </span>
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted small">
+                                    <i class="bi bi-inbox fs-4 d-block mb-1"></i>Chưa có bài viết nào được ghi nhận lượt đọc.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Nhúng Chart.js từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <!-- Truyền dữ liệu ban đầu từ Server sang JavaScript -->
+    <script>
+        window.initialDashboardData = {
+            dashboard: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dashboard ?? new FUNews.Client.DataAccess.Models.AnalyticsDashboardApiModel())),
+            trending: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendingArticles))
+        };
+    </script>
+
+    <!-- Script điều khiển Chart.js và Ajax bộ lọc -->
+    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
+}

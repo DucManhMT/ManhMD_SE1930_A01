@@ -41,10 +41,15 @@
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
+                                <a class="nav-link text-dark" href="/admin/dashboard">
+                                    <i class="bi bi-speedometer2 me-1 text-primary"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link text-dark" href="/admin/accounts">Quản lý tài khoản</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" href="/admin/reports">Báo cáo thống kê</a>
+                                <a class="nav-link text-dark" href="/admin/reports">Báo cáo lịch sử</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-muted" asp-page="/Index">Trang tin tức</a>
