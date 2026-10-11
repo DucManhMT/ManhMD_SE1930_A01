@@ -16,17 +16,20 @@ public class NewsModel : PageModel
     private readonly INewsClientService _newsClientService;
     private readonly ICategoryClientService _categoryClientService;
     private readonly ITagClientService _tagClientService;
+    private readonly IAiClientService _aiClientService;
     private readonly ILogger<NewsModel> _logger;
 
     public NewsModel(
         INewsClientService newsClientService,
         ICategoryClientService categoryClientService,
         ITagClientService tagClientService,
+        IAiClientService aiClientService,
         ILogger<NewsModel> logger)
     {
         _newsClientService = newsClientService ?? throw new ArgumentNullException(nameof(newsClientService));
         _categoryClientService = categoryClientService ?? throw new ArgumentNullException(nameof(categoryClientService));
         _tagClientService = tagClientService ?? throw new ArgumentNullException(nameof(tagClientService));
+        _aiClientService = aiClientService ?? throw new ArgumentNullException(nameof(aiClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -204,6 +207,12 @@ public class NewsModel : PageModel
 
             var createdArticle = await _newsClientService.CreateNewsArticleAsync(request, cancellationToken);
 
+            // Tự động ghi nhận Feedback Loop vào AI Learning Cache nếu có tag được gán
+            if (input.TagIds != null && input.TagIds.Count > 0)
+            {
+                _ = _aiClientService.SubmitMultipleTagFeedbacksAsync(input.TagIds, createdArticle.NewsArticleId, cancellationToken);
+            }
+
             return new JsonResult(new
             {
                 success = true,
@@ -265,6 +274,12 @@ public class NewsModel : PageModel
             };
 
             var updatedArticle = await _newsClientService.UpdateNewsArticleAsync(input.NewsArticleId, request, cancellationToken);
+
+            // Tự động ghi nhận Feedback Loop vào AI Learning Cache nếu có tag được gán
+            if (input.TagIds != null && input.TagIds.Count > 0)
+            {
+                _ = _aiClientService.SubmitMultipleTagFeedbacksAsync(input.TagIds, updatedArticle.NewsArticleId, cancellationToken);
+            }
 
             return new JsonResult(new
             {
@@ -424,6 +439,66 @@ public class NewsModel : PageModel
             });
         }
     }
+
+    public async Task<IActionResult> OnPostSuggestTagsAsync([FromBody] AiSuggestTagsInputModel input, CancellationToken cancellationToken)
+    {
+        if (input == null || string.IsNullOrWhiteSpace(input.Content))
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Vui lòng nhập nội dung bài viết trước khi yêu cầu gợi ý thẻ tin."
+            });
+        }
+
+        try
+        {
+            var suggestions = await _aiClientService.SuggestTagsAsync(input.Content, cancellationToken);
+            return new JsonResult(new
+            {
+                success = true,
+                tags = suggestions
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error fetching tag suggestions from AI service");
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Không thể lấy gợi ý thẻ tin từ AI: " + ex.Message
+            });
+        }
+    }
+
+    public async Task<IActionResult> OnPostTagFeedbackAsync([FromBody] AiFeedbackInputModel input, CancellationToken cancellationToken)
+    {
+        if (input?.TagIds != null && input.TagIds.Count > 0)
+        {
+            try
+            {
+                await _aiClientService.SubmitMultipleTagFeedbacksAsync(input.TagIds, input.ArticleId, cancellationToken);
+                return new JsonResult(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to submit tag feedback to AI API");
+            }
+        }
+
+        return new JsonResult(new { success = false });
+    }
+}
+
+public class AiSuggestTagsInputModel
+{
+    public string? Content { get; set; }
+}
+
+public class AiFeedbackInputModel
+{
+    public List<int>? TagIds { get; set; }
+    public string? ArticleId { get; set; }
 }
 
 public class CreateNewsArticleInputModel

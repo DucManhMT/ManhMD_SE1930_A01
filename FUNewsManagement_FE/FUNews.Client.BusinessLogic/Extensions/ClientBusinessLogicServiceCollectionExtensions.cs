@@ -14,6 +14,7 @@ public static class ClientBusinessLogicServiceCollectionExtensions
         services.AddScoped<IAccountClientService, AccountClientService>();
         services.AddScoped<IReportClientService, ReportClientService>();
         services.AddScoped<IAnalyticsClientService, AnalyticsClientService>();
+        services.AddScoped<IAiClientService, AiClientService>();
 
         return services;
     }

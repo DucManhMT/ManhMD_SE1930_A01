@@ -241,11 +241,45 @@ public class NewsRazorPageTests
         public Task<List<NewsArticleApiModel>> GetArticlesByTagAsync(int tagId, CancellationToken cancellationToken = default) => Task.FromResult(new List<NewsArticleApiModel>());
     }
 
-    private NewsModel CreatePageModel(INewsClientService newsService, ICategoryClientService? catService = null, ITagClientService? tagService = null)
+    private class FakeAiClientService : IAiClientService
+    {
+        public List<TagSuggestionApiModel> SuggestionsToReturn { get; set; } = new()
+        {
+            new TagSuggestionApiModel { TagId = 1, TagName = "C#", Confidence = 0.95 },
+            new TagSuggestionApiModel { TagId = 2, TagName = ".NET", Confidence = 0.85 }
+        };
+
+        public List<int> SubmittedFeedbackTagIds { get; } = new();
+
+        public Task<List<TagSuggestionApiModel>> SuggestTagsAsync(string content, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return Task.FromResult(new List<TagSuggestionApiModel>());
+            return Task.FromResult(SuggestionsToReturn);
+        }
+
+        public Task SubmitTagFeedbackAsync(int tagId, string? articleId = null, CancellationToken cancellationToken = default)
+        {
+            SubmittedFeedbackTagIds.Add(tagId);
+            return Task.CompletedTask;
+        }
+
+        public Task SubmitMultipleTagFeedbacksAsync(IEnumerable<int> tagIds, string? articleId = null, CancellationToken cancellationToken = default)
+        {
+            if (tagIds != null) SubmittedFeedbackTagIds.AddRange(tagIds);
+            return Task.CompletedTask;
+        }
+    }
+
+    private NewsModel CreatePageModel(
+        INewsClientService newsService,
+        ICategoryClientService? catService = null,
+        ITagClientService? tagService = null,
+        IAiClientService? aiService = null)
     {
         catService ??= new FakeCategoryClientService();
         tagService ??= new FakeTagClientService();
-        var model = new NewsModel(newsService, catService, tagService, NullLogger<NewsModel>.Instance);
+        aiService ??= new FakeAiClientService();
+        var model = new NewsModel(newsService, catService, tagService, aiService, NullLogger<NewsModel>.Instance);
 
         var httpContext = new DefaultHttpContext();
         var modelState = new ModelStateDictionary();
@@ -703,6 +737,147 @@ public class NewsRazorPageTests
         var msgProp = type.GetProperty("message");
         Assert.NotNull(msgProp);
         Assert.Contains("Không tìm thấy", msgProp.GetValue(jsonResult.Value)?.ToString());
+    }
+
+    [Fact]
+    public async Task OnPostSuggestTagsAsync_WithValidContent_ReturnsJsonWithSuggestions()
+    {
+        var fakeAi = new FakeAiClientService();
+        var pageModel = CreatePageModel(new FakeNewsClientService(), aiService: fakeAi);
+
+        var input = new AiSuggestTagsInputModel
+        {
+            Content = "Học lập trình C# và .NET 8 mới nhất năm 2026."
+        };
+
+        var result = await pageModel.OnPostSuggestTagsAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        var tagsProp = type.GetProperty("tags");
+        Assert.NotNull(tagsProp);
+        var tags = tagsProp.GetValue(jsonResult.Value) as List<TagSuggestionApiModel>;
+        Assert.NotNull(tags);
+        Assert.Equal(2, tags.Count);
+        Assert.Equal("C#", tags[0].TagName);
+        Assert.Equal(0.95, tags[0].Confidence);
+    }
+
+    [Fact]
+    public async Task OnPostSuggestTagsAsync_WithEmptyContent_ReturnsValidationError()
+    {
+        var fakeAi = new FakeAiClientService();
+        var pageModel = CreatePageModel(new FakeNewsClientService(), aiService: fakeAi);
+
+        var input = new AiSuggestTagsInputModel
+        {
+            Content = "   "
+        };
+
+        var result = await pageModel.OnPostSuggestTagsAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(false, successProp.GetValue(jsonResult.Value));
+
+        var msgProp = type.GetProperty("message");
+        Assert.NotNull(msgProp);
+        Assert.Contains("Vui lòng nhập nội dung", msgProp.GetValue(jsonResult.Value)?.ToString());
+    }
+
+    [Fact]
+    public async Task OnPostTagFeedbackAsync_WithValidTagIds_SubmitsFeedback()
+    {
+        var fakeAi = new FakeAiClientService();
+        var pageModel = CreatePageModel(new FakeNewsClientService(), aiService: fakeAi);
+
+        var input = new AiFeedbackInputModel
+        {
+            TagIds = new List<int> { 1, 2 },
+            ArticleId = "ART_01"
+        };
+
+        var result = await pageModel.OnPostTagFeedbackAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        Assert.Contains(1, fakeAi.SubmittedFeedbackTagIds);
+        Assert.Contains(2, fakeAi.SubmittedFeedbackTagIds);
+    }
+
+    [Fact]
+    public async Task OnPostCreateAsync_WithSelectedTags_TriggersAiFeedbackLoop()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var fakeAi = new FakeAiClientService();
+        var pageModel = CreatePageModel(fakeNews, aiService: fakeAi);
+
+        var input = new CreateNewsArticleInputModel
+        {
+            NewsTitle = "Tin tức AI 2026",
+            Headline = "Tiêu đề phụ bài viết AI",
+            NewsContent = "Chi tiết nội dung...",
+            CategoryId = 1,
+            TagIds = new List<int> { 1, 2 }
+        };
+
+        var result = await pageModel.OnPostCreateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        Assert.Contains(1, fakeAi.SubmittedFeedbackTagIds);
+        Assert.Contains(2, fakeAi.SubmittedFeedbackTagIds);
+    }
+
+    [Fact]
+    public async Task OnPostUpdateAsync_WithSelectedTags_TriggersAiFeedbackLoop()
+    {
+        var fakeNews = new FakeNewsClientService();
+        var fakeAi = new FakeAiClientService();
+        var pageModel = CreatePageModel(fakeNews, aiService: fakeAi);
+
+        var input = new UpdateNewsArticleInputModel
+        {
+            NewsArticleId = "ART_01",
+            NewsTitle = "Cập nhật tin tức AI",
+            Headline = "Tiêu đề phụ đã sửa",
+            CategoryId = 1,
+            TagIds = new List<int> { 3 }
+        };
+
+        var result = await pageModel.OnPostUpdateAsync(input, CancellationToken.None);
+
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+
+        var type = jsonResult.Value.GetType();
+        var successProp = type.GetProperty("success");
+        Assert.NotNull(successProp);
+        Assert.Equal(true, successProp.GetValue(jsonResult.Value));
+
+        Assert.Contains(3, fakeAi.SubmittedFeedbackTagIds);
     }
 }
 

@@ -606,9 +606,25 @@
 
                         <!-- 6. Thẻ tin tức (Tags) -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small d-block mb-1">
-                                <i class="bi bi-tags me-1"></i>Gắn thẻ tin tức (Tags) <span class="text-muted">(Tùy chọn, chọn nhiều)</span>
-                            </label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0">
+                                    <i class="bi bi-tags me-1"></i>Gắn thẻ tin tức (Tags) <span class="text-muted">(Tùy chọn, chọn nhiều)</span>
+                                </label>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 fw-semibold btn-ai-suggest" id="btnAiSuggestEdit" data-scope="edit" title="Tự động phân tích nội dung và gợi ý thẻ tin phù hợp">
+                                    <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerAiSuggestEdit" role="status"></span>
+                                    <i class="bi bi-stars text-warning me-1"></i>✨ Gợi ý Thẻ tin (AI)
+                                </button>
+                            </div>
+
+                            <!-- Vùng hiển thị AI Tag Chips gợi ý -->
+                            <div id="aiEditTagContainer" class="d-none mb-2 p-2 bg-primary-subtle border border-primary-subtle rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-semibold text-primary"><i class="bi bi-magic me-1"></i>Thẻ tin AI đề xuất (Bấm để gán nhanh):</span>
+                                    <span class="badge bg-primary-subtle text-primary border" id="aiEditTagCount">0 thẻ</span>
+                                </div>
+                                <div id="aiEditTagChips" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+
                             <div class="border rounded p-3 bg-light" style="max-height: 150px; overflow-y: auto;">
                                 @if (Model.Tags != null && Model.Tags.Count > 0)
                                 {
@@ -798,9 +814,25 @@
 
                     <!-- 6. Thẻ tin tức (Tags) (AC 5: Tồn tại & distinct) -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small d-block mb-1">
-                            <i class="bi bi-tags me-1"></i>Gắn thẻ tin tức (Tags) <span class="text-muted">(Tùy chọn, chọn nhiều)</span>
-                        </label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold small mb-0">
+                                <i class="bi bi-tags me-1"></i>Gắn thẻ tin tức (Tags) <span class="text-muted">(Tùy chọn, chọn nhiều)</span>
+                            </label>
+                            <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 fw-semibold btn-ai-suggest" id="btnAiSuggestCreate" data-scope="create" title="Tự động phân tích nội dung và gợi ý thẻ tin phù hợp">
+                                <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerAiSuggestCreate" role="status"></span>
+                                <i class="bi bi-stars text-warning me-1"></i>✨ Gợi ý Thẻ tin (AI)
+                            </button>
+                        </div>
+
+                        <!-- Vùng hiển thị AI Tag Chips gợi ý -->
+                        <div id="aiCreateTagContainer" class="d-none mb-2 p-2 bg-primary-subtle border border-primary-subtle rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold text-primary"><i class="bi bi-magic me-1"></i>Thẻ tin AI đề xuất (Bấm để gán nhanh):</span>
+                                <span class="badge bg-primary-subtle text-primary border" id="aiCreateTagCount">0 thẻ</span>
+                            </div>
+                            <div id="aiCreateTagChips" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+
                         <div class="border rounded p-3 bg-light" style="max-height: 150px; overflow-y: auto;">
                             @if (Model.Tags != null && Model.Tags.Count > 0)
                             {
@@ -1994,5 +2026,6 @@
             window.location.href = url.toString();
         }
     </script>
+    <script src="~/js/ai-tag-suggest.js" asp-append-version="true"></script>
 }
 
