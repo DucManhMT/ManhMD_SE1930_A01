@@ -22,6 +22,7 @@ public static class NewsArticleMappingHelper
         UpdatedById = a.UpdatedByID,
         LastEditorName = a.UpdatedBy != null ? a.UpdatedBy.AccountName : null,
         ModifiedDate = a.ModifiedDate,
+        NewsImage = a.NewsImage,
         Tags = a.NewsTags.Select(nt => new TagDto
         {
             TagId = nt.TagID,
@@ -50,6 +51,7 @@ public static class NewsArticleMappingHelper
             UpdatedById = a.UpdatedByID,
             LastEditorName = a.UpdatedBy?.AccountName,
             ModifiedDate = a.ModifiedDate,
+            NewsImage = a.NewsImage,
             Tags = a.NewsTags?.Select(nt => new TagDto
             {
                 TagId = nt.TagID,

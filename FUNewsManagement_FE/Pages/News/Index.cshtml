@@ -116,7 +116,13 @@
             @foreach (var article in Model.NewsArticles)
             {
                 <div class="col-12 col-md-6">
-                    <div class="card card-fu shadow-sm h-100 d-flex flex-column border">
+                    <div class="card card-fu shadow-sm h-100 d-flex flex-column border overflow-hidden">
+                        @if (!string.IsNullOrWhiteSpace(article.NewsImage))
+                        {
+                            <div style="height: 180px; overflow: hidden; background-color: #f8f9fa;">
+                                <img src="@article.NewsImage" class="card-img-top w-100 h-100" style="object-fit: cover;" alt="@article.Headline" onerror="this.parentElement.style.display='none';" />
+                            </div>
+                        }
                         <div class="card-body d-flex flex-column p-4">
                             <!-- Chuyên mục & Ngày tạo -->
                             <div class="d-flex justify-content-between align-items-center mb-2">

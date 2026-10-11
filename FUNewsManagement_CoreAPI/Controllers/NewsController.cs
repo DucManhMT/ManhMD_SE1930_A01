@@ -13,10 +13,12 @@ namespace ManhMD_SE1930_A01_BE.Controllers;
 public class NewsController : ControllerBase
 {
     private readonly INewsArticleService _newsService;
+    private readonly IMediaService _mediaService;
 
-    public NewsController(INewsArticleService newsService)
+    public NewsController(INewsArticleService newsService, IMediaService mediaService)
     {
         _newsService = newsService ?? throw new ArgumentNullException(nameof(newsService));
+        _mediaService = mediaService ?? throw new ArgumentNullException(nameof(mediaService));
     }
 
     [HttpGet]
@@ -179,6 +181,35 @@ public class NewsController : ControllerBase
 
         var duplicated = await _newsService.DuplicateAsync(id, accountId.Value, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = duplicated.NewsArticleId }, duplicated);
+    }
+
+    [HttpPost("{id}/image")]
+    [Authorize(Roles = "Staff")]
+    public async Task<ActionResult<UploadImageResponseDto>> UploadImage(string id, IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Tệp không hợp lệ",
+                Detail = "Vui lòng chọn một tệp ảnh hợp lệ để tải lên."
+            });
+        }
+
+        using var stream = file.OpenReadStream();
+        var relativeUrl = await _mediaService.UploadNewsImageAsync(
+            id,
+            stream,
+            file.FileName,
+            file.ContentType,
+            file.Length,
+            cancellationToken);
+
+        return Ok(new UploadImageResponseDto
+        {
+            ImageUrl = relativeUrl
+        });
     }
 
     private short? GetCurrentAccountId()

@@ -11,5 +11,6 @@ public class NewsArticleListDto
     public string? AuthorName { get; set; }
     public bool? NewsStatus { get; set; }
     public DateTime? CreatedDate { get; set; }
+    public string? NewsImage { get; set; }
     public List<string> Tags { get; set; } = new();
 }

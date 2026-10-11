@@ -19,6 +19,9 @@ public class NewsArticleApiModel
     [JsonPropertyName("newsSource")]
     public string? NewsSource { get; set; }
 
+    [JsonPropertyName("newsImage")]
+    public string? NewsImage { get; set; }
+
     [JsonPropertyName("categoryId")]
     public short? CategoryId { get; set; }
 

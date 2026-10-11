@@ -185,6 +185,17 @@ public class NewsRazorPageTests
         {
             return Task.FromResult(new List<NewsArticleApiModel>());
         }
+
+        public Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+        {
+            var article = Articles.FirstOrDefault(a => a.NewsArticleId == articleId);
+            var url = $"/uploads/news/{fileName}";
+            if (article != null)
+            {
+                article.NewsImage = url;
+            }
+            return Task.FromResult(url);
+        }
     }
 
     private class FakeCategoryClientService : ICategoryClientService

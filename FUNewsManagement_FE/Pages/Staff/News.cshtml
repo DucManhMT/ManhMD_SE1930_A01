@@ -453,6 +453,10 @@
                     <h4 class="fw-bold text-dark mb-2" id="detailNewsTitle"></h4>
                     <p class="text-muted fw-semibold mb-3 fs-6" id="detailNewsHeadline"></p>
 
+                    <div id="detailNewsImageContainer" class="mb-3 d-none text-center">
+                        <img id="detailNewsImage" src="" class="img-fluid rounded border shadow-sm" style="max-height: 250px; object-fit: cover;" alt="Ảnh bài viết" />
+                    </div>
+
                     <div class="row g-2 p-3 bg-light rounded-3 mb-3 small">
                         <div class="col-sm-6">
                             <span class="text-secondary">Chuyên mục:</span>
@@ -630,7 +634,23 @@
                             </div>
                         </div>
 
-                        <!-- 7. Nội dung bài viết (NewsContent) -->
+                        <!-- 7. Ảnh bài viết (NewsImage) -->
+                        <div class="mb-3">
+                            <label for="editNewsImageFile" class="form-label fw-semibold small">
+                                <i class="bi bi-image me-1"></i>Ảnh minh họa bài viết <span class="text-muted">(Tùy chọn, tối đa 5MB: PNG, JPG, JPEG, WEBP)</span>
+                            </label>
+                            <div id="editCurrentImgContainer" class="mb-2 d-none">
+                                <span class="small text-muted d-block mb-1">Ảnh hiện tại:</span>
+                                <img id="editCurrentImg" src="#" alt="Ảnh hiện tại" class="img-thumbnail rounded" style="max-height: 140px; object-fit: cover;" />
+                            </div>
+                            <input type="file" class="form-control form-control-sm" id="editNewsImageFile" accept=".png,.jpg,.jpeg,.webp" />
+                            <div id="editImagePreviewContainer" class="mt-2 d-none">
+                                <span class="small text-muted d-block mb-1">Ảnh mới được chọn:</span>
+                                <img id="editImagePreview" src="#" alt="Xem trước ảnh" class="img-thumbnail rounded" style="max-height: 160px; object-fit: cover;" />
+                            </div>
+                        </div>
+
+                        <!-- 8. Nội dung bài viết (NewsContent) -->
                         <div class="mb-2">
                             <label for="editNewsContent" class="form-label fw-semibold small">
                                 Nội dung chi tiết (News Content) <span class="text-muted">(Tùy chọn)</span>
@@ -807,7 +827,19 @@
                         <div class="invalid-feedback d-block d-none" id="errorCreateNewsTags"></div>
                     </div>
 
-                    <!-- 7. Nội dung bài viết (NewsContent) -->
+                    <!-- 7. Ảnh bài viết (NewsImage) -->
+                    <div class="mb-3">
+                        <label for="createNewsImageFile" class="form-label fw-semibold small">
+                            <i class="bi bi-image me-1"></i>Ảnh minh họa bài viết <span class="text-muted">(Tùy chọn, tối đa 5MB: PNG, JPG, JPEG, WEBP)</span>
+                        </label>
+                        <input type="file" class="form-control form-control-sm" id="createNewsImageFile" accept=".png,.jpg,.jpeg,.webp" />
+                        <div id="createImagePreviewContainer" class="mt-2 d-none">
+                            <span class="small text-muted d-block mb-1">Xem trước ảnh:</span>
+                            <img id="createImagePreview" src="#" alt="Xem trước ảnh" class="img-thumbnail rounded" style="max-height: 160px; object-fit: cover;" />
+                        </div>
+                    </div>
+
+                    <!-- 8. Nội dung bài viết (NewsContent) -->
                     <div class="mb-2">
                         <label for="createNewsContent" class="form-label fw-semibold small">
                             Nội dung chi tiết (News Content) <span class="text-muted">(Tùy chọn)</span>
@@ -882,6 +914,8 @@
             const lastEditorEl = document.getElementById('detailNewsLastEditor');
             const tagsEl = document.getElementById('detailNewsTags');
             const bodyEl = document.getElementById('detailNewsContent');
+            const detailImgContainerEl = document.getElementById('detailNewsImageContainer');
+            const detailImgEl = document.getElementById('detailNewsImage');
 
             function bindDetailButtons(container = document) {
                 container.querySelectorAll('.btn-view-news').forEach(btn => {
@@ -940,6 +974,16 @@
                                     bodyEl.textContent = a.newsContent || 'Không có nội dung.';
                                 }
 
+                                if (detailImgContainerEl && detailImgEl) {
+                                    if (a.newsImage) {
+                                        detailImgEl.src = a.newsImage;
+                                        detailImgContainerEl.classList.remove('d-none');
+                                    } else {
+                                        detailImgEl.src = '';
+                                        detailImgContainerEl.classList.add('d-none');
+                                    }
+                                }
+
                                 if (spinner) spinner.classList.add('d-none');
                                 if (content) content.classList.remove('d-none');
                             } else {
@@ -992,6 +1036,46 @@
             const spinnerCreate = document.getElementById('spinnerCreateNews');
             const btnTextCreate = document.getElementById('btnTextCreateNews');
 
+            const inputCreateImage = document.getElementById('createNewsImageFile');
+            const previewCreateImage = document.getElementById('createImagePreview');
+            const previewContainerCreateImage = document.getElementById('createImagePreviewContainer');
+
+            async function uploadArticleImageFile(articleId, file) {
+                if (!articleId || !file) return null;
+                const formData = new FormData();
+                formData.append('articleId', articleId);
+                formData.append('file', file);
+
+                const response = await fetch('/staff/news?handler=UploadImage', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': getCsrfToken()
+                    },
+                    body: formData
+                });
+                return await response.json();
+            }
+
+            inputCreateImage?.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast(false, 'Ảnh vượt quá kích thước cho phép (tối đa 5MB).');
+                        this.value = '';
+                        previewContainerCreateImage?.classList.add('d-none');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        if (previewCreateImage) previewCreateImage.src = e.target.result;
+                        previewContainerCreateImage?.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainerCreateImage?.classList.add('d-none');
+                }
+            });
+
             // Cập nhật bộ đếm ký tự
             function setupCounter(input, counter) {
                 if (!input || !counter) return;
@@ -1020,6 +1104,8 @@
                 if (countTitle) countTitle.textContent = '0';
                 if (countSource) countSource.textContent = '0';
                 if (countContent) countContent.textContent = '0';
+                if (inputCreateImage) inputCreateImage.value = '';
+                previewContainerCreateImage?.classList.add('d-none');
                 document.querySelectorAll('.create-news-tag-cb').forEach(cb => cb.checked = false);
             }
 
@@ -1133,6 +1219,17 @@
 
                     if (result && result.success && result.article) {
                         const a = result.article;
+                        const fileToUpload = inputCreateImage && inputCreateImage.files && inputCreateImage.files[0];
+                        if (fileToUpload) {
+                            try {
+                                const upRes = await uploadArticleImageFile(a.newsArticleId, fileToUpload);
+                                if (upRes && upRes.success && upRes.imageUrl) {
+                                    a.newsImage = upRes.imageUrl;
+                                }
+                            } catch (e) {
+                                console.error('Lỗi khi tải ảnh bài viết lên:', e);
+                            }
+                        }
                         createModal?.hide();
                         resetCreateForm();
                         showToast(true, result.message || 'Tạo bài viết mới thành công.');
@@ -1327,6 +1424,32 @@
             const btnTextEdit = document.getElementById('btnTextEditNews');
             const formEdit = document.getElementById('formEditNews');
 
+            const inputEditImage = document.getElementById('editNewsImageFile');
+            const previewEditImage = document.getElementById('editImagePreview');
+            const previewContainerEditImage = document.getElementById('editImagePreviewContainer');
+            const currentImgContainerEdit = document.getElementById('editCurrentImgContainer');
+            const currentImgEdit = document.getElementById('editCurrentImg');
+
+            inputEditImage?.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast(false, 'Ảnh vượt quá kích thước cho phép (tối đa 5MB).');
+                        this.value = '';
+                        previewContainerEditImage?.classList.add('d-none');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        if (previewEditImage) previewEditImage.src = e.target.result;
+                        previewContainerEditImage?.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainerEditImage?.classList.add('d-none');
+                }
+            });
+
             // Counter helpers for edit modal
             function setupEditCounter(input, countEl, max) {
                 if (!input || !countEl) return;
@@ -1355,6 +1478,9 @@
                 clearEditErrors();
                 if (formEdit) formEdit.reset();
                 if (editArticleIdInput) editArticleIdInput.value = '';
+                if (inputEditImage) inputEditImage.value = '';
+                previewContainerEditImage?.classList.add('d-none');
+                currentImgContainerEdit?.classList.add('d-none');
                 // Reset tag checkboxes
                 document.querySelectorAll('.edit-news-tag-cb').forEach(cb => cb.checked = false);
                 // Reset counters
@@ -1393,6 +1519,14 @@
                         if (editTitleInput) { editTitleInput.value = a.newsTitle || ''; document.getElementById('editNewsTitleCount').textContent = editTitleInput.value.length; }
                         if (editSourceInput) { editSourceInput.value = a.newsSource || ''; document.getElementById('editNewsSourceCount').textContent = editSourceInput.value.length; }
                         if (editContentTextarea) { editContentTextarea.value = a.newsContent || ''; document.getElementById('editNewsContentCount').textContent = editContentTextarea.value.length; }
+
+                        // Pre-fill image if present
+                        if (a.newsImage) {
+                            if (currentImgEdit) currentImgEdit.src = a.newsImage;
+                            currentImgContainerEdit?.classList.remove('d-none');
+                        } else {
+                            currentImgContainerEdit?.classList.add('d-none');
+                        }
 
                         // Pre-fill category
                         if (editCategorySelect && a.categoryId) {
@@ -1650,6 +1784,17 @@
 
                     if (result && result.success && result.article) {
                         const a = result.article;
+                        const fileToUpload = inputEditImage && inputEditImage.files && inputEditImage.files[0];
+                        if (fileToUpload) {
+                            try {
+                                const upRes = await uploadArticleImageFile(a.newsArticleId, fileToUpload);
+                                if (upRes && upRes.success && upRes.imageUrl) {
+                                    a.newsImage = upRes.imageUrl;
+                                }
+                            } catch (e) {
+                                console.error('Lỗi khi tải ảnh bài viết lên:', e);
+                            }
+                        }
                         editModal?.hide();
                         resetEditForm();
                         showToast(true, result.message || 'Cập nhật bài viết thành công.');

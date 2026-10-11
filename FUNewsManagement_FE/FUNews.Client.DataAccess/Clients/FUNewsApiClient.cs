@@ -204,6 +204,26 @@ public class FUNewsApiClient : IFUNewsApiClient
         return result ?? new List<NewsArticleApiModel>();
     }
 
+    public async Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(articleId);
+        ArgumentNullException.ThrowIfNull(fileStream);
+
+        using var content = new MultipartFormDataContent();
+        var streamContent = new StreamContent(fileStream);
+        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
+        content.Add(streamContent, "file", fileName);
+
+        using var response = await _httpClient.PostAsync($"api/news/{Uri.EscapeDataString(articleId)}/image", content, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, cancellationToken);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<UploadImageResponseApiModel>(JsonOptions, cancellationToken);
+        return result?.ImageUrl ?? string.Empty;
+    }
+
     public Task<ODataEnvelope<AccountApiModel>> GetAccountsAsync(string? odataQuery = null, CancellationToken cancellationToken = default)
     {
         var uri = string.IsNullOrWhiteSpace(odataQuery) ? "api/account" : $"api/account{FormatQuery(odataQuery)}";

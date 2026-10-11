@@ -47,6 +47,17 @@ public class CategoryManagementTests : IClassFixture<WebApplicationFactory<Progr
             .ToListAsync();
         if (testArticles.Count > 0)
         {
+            var articleIds = testArticles.Select(a => a.NewsArticleID).ToList();
+            var testNewsTags = await db.NewsTags.Where(nt => articleIds.Contains(nt.NewsArticleID)).ToListAsync();
+            if (testNewsTags.Count > 0)
+            {
+                db.NewsTags.RemoveRange(testNewsTags);
+            }
+            var testNewsViews = await db.NewsViews.Where(nv => articleIds.Contains(nv.NewsArticleID)).ToListAsync();
+            if (testNewsViews.Count > 0)
+            {
+                db.NewsViews.RemoveRange(testNewsViews);
+            }
             db.NewsArticles.RemoveRange(testArticles);
             await db.SaveChangesAsync();
         }

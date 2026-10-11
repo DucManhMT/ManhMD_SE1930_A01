@@ -8,7 +8,7 @@
 | **A02-004** | FE: HttpClients, DelegatingHandler & Polly | `DONE` | AI Agent | 2026-10-11 | 3 Typed HttpClients, DelegatingHandler refresh 401, Polly Retry GET, 105 tests pass |
 | **A02-005** | Database: Migration Schema bổ sung A02 | `DONE` | AI Agent | 2026-10-11 | Bảng AuditLog, NewsView, TagLearning, cột NewsImage, 5/5 tests pass |
 | **A02-006** | Core API: Audit Logging & Ràng buộc toàn vẹn | `DONE` | AI Agent | 2026-10-11 | Tự động ghi Before/After JSON, GET /api/auditlog, chặn xóa quan hệ, 3/3 tests pass |
-| **A02-007** | Core API & FE: Upload và hiển thị ảnh bài viết | `TODO` | AI Agent | — | Xử lý multipart/form-data ảnh và hiển thị UI |
+| **A02-007** | Core API & FE: Upload và hiển thị ảnh bài viết | `DONE` | AI Agent | 2026-10-11 | Upload PNG/JPG < 5MB, chặn 413/415, magic bytes, StaticFiles, preview modal & hiển thị bài viết |
 | **A02-008** | Analytics API: Dashboard, Trending, Recommend | `TODO` | AI Agent | — | Endpoints tính toán số liệu và trending |
 | **A02-009** | FE & Analytics: Dashboard Chart.js & Export Excel | `TODO` | AI Agent | — | Vẽ biểu đồ Pie/Bar và tải file Excel `.xlsx` |
 | **A02-010** | AI API: Tag Suggestions & Learning Cache | `TODO` | AI Agent | — | Trích xuất từ khóa và lưu trọng số tag |

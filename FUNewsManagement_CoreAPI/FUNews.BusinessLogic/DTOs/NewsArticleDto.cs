@@ -16,5 +16,6 @@ public class NewsArticleDto
     public short? UpdatedById { get; set; }
     public string? LastEditorName { get; set; }
     public DateTime? ModifiedDate { get; set; }
+    public string? NewsImage { get; set; }
     public List<TagDto> Tags { get; set; } = new();
 }

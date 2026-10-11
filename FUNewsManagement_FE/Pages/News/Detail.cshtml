@@ -64,6 +64,14 @@
             </p>
         </div>
 
+        <!-- Ảnh minh họa bài viết nếu có -->
+        @if (!string.IsNullOrWhiteSpace(Model.Article.NewsImage))
+        {
+            <div class="mb-4 text-center rounded overflow-hidden shadow-sm border bg-light">
+                <img src="@Model.Article.NewsImage" class="img-fluid w-100" style="max-height: 450px; object-fit: cover;" alt="@title" onerror="this.parentElement.style.display='none';" />
+            </div>
+        }
+
         <!-- Nội dung bài viết chi tiết (AC 4: Encode plain text, giữ định dạng xuống dòng an toàn) -->
         <div class="article-content text-dark mb-4 fs-6" style="white-space: pre-line; line-height: 1.85;">
             @Model.Article.NewsContent

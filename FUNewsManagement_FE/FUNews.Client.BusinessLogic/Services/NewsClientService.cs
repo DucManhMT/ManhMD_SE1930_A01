@@ -51,5 +51,10 @@ public class NewsClientService : INewsClientService
     {
         return _apiClient.GetRelatedNewsArticlesAsync(id, cancellationToken);
     }
+
+    public Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+    {
+        return _apiClient.UploadNewsImageAsync(articleId, fileStream, fileName, contentType, cancellationToken);
+    }
 }
 

@@ -85,6 +85,11 @@ public class HistoryRazorPageTests
         {
             return Task.FromResult(new List<NewsArticleApiModel>());
         }
+
+        public Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult($"/uploads/news/{fileName}");
+        }
     }
 
     private class FakeHistoryCategoryService : ICategoryClientService

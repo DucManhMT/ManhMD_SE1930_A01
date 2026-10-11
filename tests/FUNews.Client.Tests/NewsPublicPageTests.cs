@@ -98,6 +98,11 @@ public class NewsPublicPageTests
 
             return Task.FromResult(related);
         }
+
+        public Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult($"/uploads/news/{fileName}");
+        }
     }
 
     private class FakePublicCategoryService : ICategoryClientService

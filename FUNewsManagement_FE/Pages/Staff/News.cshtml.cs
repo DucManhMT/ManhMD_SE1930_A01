@@ -375,6 +375,55 @@ public class NewsModel : PageModel
             });
         }
     }
+
+    public async Task<IActionResult> OnPostUploadImageAsync([FromForm] string articleId, [FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(articleId))
+        {
+            return new JsonResult(new { success = false, message = "Mã bài viết không hợp lệ." });
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return new JsonResult(new { success = false, message = "Vui lòng chọn một file ảnh hợp lệ." });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var imageUrl = await _newsClientService.UploadNewsImageAsync(
+                articleId,
+                stream,
+                file.FileName,
+                file.ContentType,
+                cancellationToken);
+
+            return new JsonResult(new
+            {
+                success = true,
+                imageUrl,
+                message = "Tải lên ảnh bài viết thành công."
+            });
+        }
+        catch (FUNewsApiException ex)
+        {
+            _logger.LogWarning(ex, "API error while uploading image for news article {Id}: {Message}", articleId, ex.Message);
+            return new JsonResult(new
+            {
+                success = false,
+                message = ex.Message ?? "Không thể tải lên ảnh do lỗi từ hệ thống."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error while uploading image for news article {Id}.", articleId);
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Đã xảy ra lỗi khi tải ảnh lên. Vui lòng thử lại sau."
+            });
+        }
+    }
 }
 
 public class CreateNewsArticleInputModel

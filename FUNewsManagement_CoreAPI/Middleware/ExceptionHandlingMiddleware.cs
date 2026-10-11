@@ -98,6 +98,20 @@ public class ExceptionHandlingMiddleware
                 _logger.LogInformation("Unauthorized access: {Message}", unauthEx.Message);
                 break;
 
+            case PayloadTooLargeException payloadEx:
+                statusCode = StatusCodes.Status413PayloadTooLarge;
+                title = "Dung lượng file vượt quá giới hạn";
+                detail = payloadEx.Message;
+                _logger.LogWarning("Payload too large: {Message}", payloadEx.Message);
+                break;
+
+            case UnsupportedMediaTypeException mediaEx:
+                statusCode = StatusCodes.Status415UnsupportedMediaType;
+                title = "Định dạng file không được hỗ trợ";
+                detail = mediaEx.Message;
+                _logger.LogWarning("Unsupported media type: {Message}", mediaEx.Message);
+                break;
+
             default:
                 _logger.LogError(exception, "Unhandled exception occurred. TraceId: {TraceId}", traceId);
                 break;

@@ -49,6 +49,9 @@ public class SearchRazorPageTests
 
         public Task<List<NewsArticleApiModel>> GetRelatedNewsArticlesAsync(string id, CancellationToken cancellationToken = default) =>
             Task.FromResult(new List<NewsArticleApiModel>());
+
+        public Task<string> UploadNewsImageAsync(string articleId, Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default) =>
+            Task.FromResult($"/uploads/news/{fileName}");
     }
 
     private class FakeCategoryClientService : ICategoryClientService

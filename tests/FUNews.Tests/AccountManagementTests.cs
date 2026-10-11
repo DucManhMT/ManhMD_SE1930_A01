@@ -51,6 +51,20 @@ public class AccountManagementTests : IClassFixture<WebApplicationFactory<Progra
 
         if (testAccounts.Count > 0)
         {
+            var accIds = testAccounts.Select(a => a.AccountID).ToList();
+            var articles = await db.NewsArticles.Where(a => (a.CreatedByID.HasValue && accIds.Contains(a.CreatedByID.Value)) || (a.UpdatedByID.HasValue && accIds.Contains(a.UpdatedByID.Value))).ToListAsync();
+            if (articles.Count > 0)
+            {
+                var articleIds = articles.Select(a => a.NewsArticleID).ToList();
+                var newsTags = await db.NewsTags.Where(nt => articleIds.Contains(nt.NewsArticleID)).ToListAsync();
+                if (newsTags.Count > 0) db.NewsTags.RemoveRange(newsTags);
+                var newsViews = await db.NewsViews.Where(nv => articleIds.Contains(nv.NewsArticleID)).ToListAsync();
+                if (newsViews.Count > 0) db.NewsViews.RemoveRange(newsViews);
+                db.NewsArticles.RemoveRange(articles);
+            }
+            var refreshTokens = await db.RefreshTokens.Where(rt => rt.AccountID.HasValue && accIds.Contains(rt.AccountID.Value)).ToListAsync();
+            if (refreshTokens.Count > 0) db.RefreshTokens.RemoveRange(refreshTokens);
+
             db.SystemAccounts.RemoveRange(testAccounts);
             await db.SaveChangesAsync();
         }
